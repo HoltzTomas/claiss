@@ -1,0 +1,172 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Updated to Classia educational theme with glassmorphism */
+  --background: oklch(0.075 0 0); /* Dark background for glassmorphism */
+  --foreground: oklch(0.985 0 0); /* White for text */
+  --card: oklch(0.118 0 0 / 0.6); /* Enhanced glassmorphism transparency */
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.118 0 0 / 0.8);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.65 0.15 195); /* Cyan for educational innovation */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.65 0.18 260); /* Indigo for creativity */
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.985 0 0 / 0.4);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.7 0.16 260); /* Indigo accent for highlights */
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.985 0 0 / 0.15); /* Glass borders */
+  --input: oklch(0.985 0 0 / 0.08);
+  --ring: oklch(0.65 0.15 195 / 0.3); /* Cyan focus ring */
+  --chart-1: oklch(0.65 0.15 195);
+  --chart-2: oklch(0.65 0.18 260);
+  --chart-3: oklch(0.7 0.16 260);
+  --chart-4: oklch(0.985 0 0 / 0.3);
+  --chart-5: oklch(0.985 0 0 / 0.2);
+  --radius: 1rem; /* Rounded for organic feel */
+  --sidebar: oklch(0.118 0 0 / 0.7);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.65 0.15 195);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.65 0.18 260);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.985 0 0 / 0.15);
+  --sidebar-ring: oklch(0.65 0.15 195 / 0.3);
+}
+
+.dark {
+  /* Dark mode uses same educational glassmorphism theme */
+  --background: oklch(0.075 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.118 0 0 / 0.6);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.118 0 0 / 0.8);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.65 0.15 195);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.65 0.18 260);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.985 0 0 / 0.4);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.7 0.16 260);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.985 0 0 / 0.15);
+  --input: oklch(0.985 0 0 / 0.08);
+  --ring: oklch(0.65 0.15 195 / 0.3);
+  --chart-1: oklch(0.65 0.15 195);
+  --chart-2: oklch(0.65 0.18 260);
+  --chart-3: oklch(0.7 0.16 260);
+  --chart-4: oklch(0.985 0 0 / 0.3);
+  --chart-5: oklch(0.985 0 0 / 0.2);
+  --sidebar: oklch(0.118 0 0 / 0.7);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.65 0.15 195);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.65 0.18 260);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.985 0 0 / 0.15);
+  --sidebar-ring: oklch(0.65 0.15 195 / 0.3);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Updated glow effects to be more subtle and glass-like */
+  .glow-subtle {
+    box-shadow: 0 0 20px oklch(0.985 0 0 / 0.1), 0 0 40px oklch(0.985 0 0 / 0.05);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 30px oklch(0.65 0.15 195 / 0.2), 0 0 60px oklch(0.65 0.15 195 / 0.1);
+  }
+
+  .glassmorphism {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid oklch(0.985 0 0 / 0.15);
+    background: oklch(0.118 0 0 / 0.4);
+  }
+
+  .glassmorphism-strong {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid oklch(0.985 0 0 / 0.2);
+    background: oklch(0.118 0 0 / 0.6);
+  }
+
+  .glassmorphism-ultra {
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid oklch(0.985 0 0 / 0.25);
+    background: oklch(0.118 0 0 / 0.8);
+  }
+
+  /* Added frosted glass effect variations */
+  .frosted-light {
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    background: oklch(0.985 0 0 / 0.05);
+    border: 1px solid oklch(0.985 0 0 / 0.1);
+  }
+
+  .frosted-medium {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: oklch(0.985 0 0 / 0.08);
+    border: 1px solid oklch(0.985 0 0 / 0.15);
+  }
+}
