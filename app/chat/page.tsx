@@ -2,71 +2,31 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 import { GlassCard } from "@/components/glass-card"
 import { EtherealButton } from "@/components/ethereal-button"
 import { GlowingInput } from "@/components/glowing-input"
 import { Send, Sparkles, Play, Clock, BookOpen } from "lucide-react"
-import { useSearchParams } from "next/navigation"
 
 export default function ClassiaChat() {
-  const [messages, setMessages] = useState<
-    Array<{ id: string; type: "user" | "assistant"; content: string; timestamp: Date }>
-  >([])
   const [input, setInput] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [currentStep, setCurrentStep] = useState("")
-  const searchParams = useSearchParams()
+  
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/video-generator',
+    }),
+  })
 
-  useEffect(() => {
-    const initialPrompt = searchParams.get("prompt")
-    if (initialPrompt) {
-      setInput(initialPrompt)
-      handleSubmit(null, initialPrompt)
-    }
-  }, [searchParams])
+  const isLoading = status === 'streaming'
 
-  const handleSubmit = async (e?: React.FormEvent, promptText?: string) => {
-    if (e) e.preventDefault()
-    const messageText = promptText || input.trim()
-    if (!messageText) return
-
-    const userMessage = {
-      id: Date.now().toString(),
-      type: "user" as const,
-      content: messageText,
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+    
+    sendMessage({ text: input })
     setInput("")
-    setIsGenerating(true)
-
-    // Simulate AI agent steps
-    const steps = [
-      "Analyzing your prompt...",
-      "Understanding the algorithm structure...",
-      "Generating Python code with Manim...",
-      "Creating visual elements...",
-      "Rendering video frames...",
-      "Finalizing educational video...",
-    ]
-
-    for (let i = 0; i < steps.length; i++) {
-      setCurrentStep(steps[i])
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-    }
-
-    const assistantMessage = {
-      id: (Date.now() + 1).toString(),
-      type: "assistant" as const,
-      content: `I've created an educational video showing ${messageText.toLowerCase()}. The video demonstrates the algorithm step-by-step with clear visualizations and explanations.`,
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, assistantMessage])
-    setIsGenerating(false)
-    setCurrentStep("")
   }
 
   return (
@@ -107,40 +67,47 @@ export default function ClassiaChat() {
           )}
 
           {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
+            <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[80%] ${message.type === "user" ? "bg-primary/20" : "glassmorphism"} rounded-2xl p-4`}
+                className={`max-w-[80%] ${message.role === "user" ? "bg-primary/20" : "glassmorphism"} rounded-2xl p-4`}
               >
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs text-muted-foreground mt-2">{message.timestamp.toLocaleTimeString()}</p>
+                <p className="text-sm">
+                  {message.parts.map((part, i) => {
+                    if (part.type === 'text') {
+                      return <span key={i}>{part.text}</span>
+                    }
+                    return null
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">{new Date().toLocaleTimeString()}</p>
               </div>
             </div>
           ))}
 
-          {isGenerating && (
+          {isLoading && (
             <div className="flex justify-start">
               <div className="glassmorphism rounded-2xl p-4 max-w-[80%]">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <p className="text-sm font-medium">Generating video...</p>
+                  <p className="text-sm font-medium">Thinking...</p>
                 </div>
-                <p className="text-xs text-muted-foreground">{currentStep}</p>
+                <p className="text-xs text-muted-foreground">Processing your request</p>
               </div>
             </div>
           )}
         </div>
 
         {/* Input */}
-        <div className="p-6 border-t border-border/50">
-          <form onSubmit={handleSubmit} className="flex gap-3">
+        <div className="p-6 border-t border-border/50 w-full flex">
+          <form onSubmit={handleSubmit} className="flex gap-3 w-full">
             <GlowingInput
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Describe what you want to learn..."
-              className="flex-1"
-              disabled={isGenerating}
+              className="!flex-1 !w-full !min-w-0 !max-w-none"
+              disabled={isLoading}
             />
-            <EtherealButton type="submit" disabled={isGenerating || !input.trim()}>
+            <EtherealButton type="submit" disabled={isLoading || !input.trim()}>
               <Send className="w-4 h-4" />
             </EtherealButton>
           </form>
@@ -149,18 +116,18 @@ export default function ClassiaChat() {
 
       {/* Content Area */}
       <div className="w-1/2 flex flex-col items-center justify-center p-12">
-        {isGenerating ? (
+        {isLoading ? (
           <div className="text-center space-y-6">
             <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
               <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Creating Your Video</h2>
-              <p className="text-muted-foreground mb-4">{currentStep}</p>
+              <h2 className="text-2xl font-semibold mb-2">AI is Thinking</h2>
+              <p className="text-muted-foreground mb-4">Processing your request...</p>
               <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  <span>~2 minutes</span>
+                  <span>~30 seconds</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <BookOpen className="w-4 h-4" />
@@ -173,14 +140,13 @@ export default function ClassiaChat() {
           <div className="text-center space-y-6">
             <GlassCard className="p-8 max-w-md">
               <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
-                <Play className="w-8 h-8 text-primary" />
+                <Sparkles className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Video Ready!</h3>
-              <p className="text-muted-foreground mb-4">Your educational video has been generated successfully.</p>
-              <EtherealButton className="w-full">
-                <Play className="w-4 h-4 mr-2" />
-                Watch Video
-              </EtherealButton>
+              <h3 className="text-xl font-semibold mb-2">Chat Active!</h3>
+              <p className="text-muted-foreground mb-4">Continue the conversation or ask a new question.</p>
+              <div className="text-sm text-muted-foreground">
+                {messages.length} message{messages.length !== 1 ? 's' : ''} exchanged
+              </div>
             </GlassCard>
           </div>
         ) : (
@@ -191,8 +157,8 @@ export default function ClassiaChat() {
             <div>
               <h2 className="text-3xl font-bold mb-4">Ready to Learn?</h2>
               <p className="text-muted-foreground">
-                Start a conversation to generate your first educational video. I can help visualize algorithms,
-                mathematical concepts, and scientific principles.
+                Start a conversation with Classia AI. Ask questions about educational content, algorithms,
+                mathematical concepts, or any learning topic.
               </p>
             </div>
           </div>
