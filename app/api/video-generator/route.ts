@@ -7,6 +7,7 @@ import {
   type UIMessage 
 } from 'ai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { compileManimCode, extractManimCode } from '@/lib/manim-compiler';
 
 export const maxDuration = 30;
 
@@ -53,12 +54,19 @@ WORKFLOW FOR ANY EDUCATIONAL REQUEST:
 3. Return clean, working Python code using Manim for educational animations
 4. Keep explanations minimal - focus on providing complete, runnable code
 
-RESPONSE FORMAT:
-- Return primarily Python code blocks
-- Use proper Manim class structure: class TopicAnimation(Scene)
+CRITICAL CODE FORMAT REQUIREMENTS:
+- ALWAYS wrap Python code in \`\`\`python code blocks
+- Use proper Manim class structure: class [Topic]Animation(Scene)
 - Include necessary imports: from manim import *
 - Ensure code is complete and executable
+- Use modern Manim syntax (avoid deprecated methods like .set_fill())
 - Add brief comments only for complex parts
+- Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
+
+RESPONSE FORMAT:
+1. Brief explanation (1-2 sentences)
+2. Clean Python code block with proper formatting
+3. The code will be automatically compiled into a video animation
 
 EXAMPLES OF TOPIC EXTRACTION:
 - "Explain how bubble sort works" → Search: "bubble sort examples animations"
@@ -98,6 +106,32 @@ ALWAYS use Context7 to get the most up-to-date Manim documentation and examples 
         console.log(`[VIDEO-GENERATOR]   - Final text length: ${text?.length || 0} chars`);
         if (usage) {
           console.log(`[VIDEO-GENERATOR]   - Total token usage: ${usage.totalTokens}`);
+        }
+        
+        // Try to compile Manim code if present
+        if (text) {
+          console.log('[VIDEO-GENERATOR] Step 5: Checking for Manim code...');
+          const manimData = extractManimCode(text);
+          
+          if (manimData) {
+            console.log(`[VIDEO-GENERATOR] 🎬 Found Manim code with class: ${manimData.className}`);
+            console.log('[VIDEO-GENERATOR] Step 6: Compiling Manim animation...');
+            
+            try {
+              const compilationResult = await compileManimCode(manimData.code, manimData.className);
+              
+              if (compilationResult.success) {
+                console.log(`[VIDEO-GENERATOR] 🎉 Animation compiled successfully!`);
+                console.log(`[VIDEO-GENERATOR]   - Video URL: ${compilationResult.videoUrl}`);
+              } else {
+                console.error(`[VIDEO-GENERATOR] ❌ Animation compilation failed:`, compilationResult.error);
+              }
+            } catch (error) {
+              console.error(`[VIDEO-GENERATOR] ❌ Unexpected compilation error:`, error);
+            }
+          } else {
+            console.log('[VIDEO-GENERATOR] ℹ️  No Manim code detected in response');
+          }
         }
         
         // Cleanup MCP client when streaming finishes
@@ -151,12 +185,19 @@ ALWAYS use Context7 to get the most up-to-date Manim documentation and examples 
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.
 
-RESPONSE FORMAT:
-- Return clean, working Python code using Manim for educational animations
-- Use proper Manim class structure: class TopicAnimation(Scene)
+CRITICAL CODE FORMAT REQUIREMENTS:
+- ALWAYS wrap Python code in \`\`\`python code blocks
+- Use proper Manim class structure: class [Topic]Animation(Scene)
 - Include necessary imports: from manim import *
 - Ensure code is complete and executable
-- Keep explanations minimal - focus on providing runnable code
+- Use modern Manim syntax (avoid deprecated methods like .set_fill())
+- Add brief comments only for complex parts
+- Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
+
+RESPONSE FORMAT:
+1. Brief explanation (1-2 sentences)
+2. Clean Python code block with proper formatting
+3. The code will be automatically compiled into a video animation
 
 Extract the educational topic from the user's question and create appropriate Manim animation code.`,
       messages: convertToModelMessages(messages),
@@ -180,6 +221,32 @@ Extract the educational topic from the user's question and create appropriate Ma
         console.log(`[VIDEO-GENERATOR]   - Final text length: ${text?.length || 0} chars`);
         if (usage) {
           console.log(`[VIDEO-GENERATOR]   - Total token usage: ${usage.totalTokens}`);
+        }
+        
+        // Try to compile Manim code if present (fallback scenario)
+        if (text) {
+          console.log('[VIDEO-GENERATOR] Step 5: Checking for Manim code (fallback)...');
+          const manimData = extractManimCode(text);
+          
+          if (manimData) {
+            console.log(`[VIDEO-GENERATOR] 🎬 Found Manim code with class: ${manimData.className}`);
+            console.log('[VIDEO-GENERATOR] Step 6: Compiling Manim animation (fallback)...');
+            
+            try {
+              const compilationResult = await compileManimCode(manimData.code, manimData.className);
+              
+              if (compilationResult.success) {
+                console.log(`[VIDEO-GENERATOR] 🎉 Animation compiled successfully!`);
+                console.log(`[VIDEO-GENERATOR]   - Video URL: ${compilationResult.videoUrl}`);
+              } else {
+                console.error(`[VIDEO-GENERATOR] ❌ Animation compilation failed:`, compilationResult.error);
+              }
+            } catch (error) {
+              console.error(`[VIDEO-GENERATOR] ❌ Unexpected compilation error:`, error);
+            }
+          } else {
+            console.log('[VIDEO-GENERATOR] ℹ️  No Manim code detected in fallback response');
+          }
         }
       },
       onError: async ({ error }) => {
