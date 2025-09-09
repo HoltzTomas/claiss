@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     console.log('[VIDEO-GENERATOR] Step 3: Starting AI text streaming...');
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-5'),
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 WORKFLOW FOR ANY EDUCATIONAL REQUEST:
