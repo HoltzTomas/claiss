@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 WORKFLOW FOR ANY EDUCATIONAL REQUEST:
 1. Extract the main topic from the user's question (e.g., "bubble sort", "physics simulation", "calculus", "data structures")
 2. ALWAYS use Context7 tools to search the /manimcommunity/manim library with the pattern: "{extracted_topic} examples animations"
-3. Return clean, working Python code using Manim for educational animations
+3. Return clean, working Python code using Manim for educational animations with proper content management
 4. Keep explanations minimal - focus on providing complete, runnable code
 
 CRITICAL CODE FORMAT REQUIREMENTS:
@@ -63,9 +63,45 @@ CRITICAL CODE FORMAT REQUIREMENTS:
 - Add brief comments only for complex parts
 - Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
 
+CONTENT MANAGEMENT REQUIREMENTS (CRITICAL TO PREVENT OVERLAPPING):
+- Use self.next_section("Section Name") to divide content into logical parts
+- Always use FadeOut() to remove objects before introducing new major content
+- Use self.clear() when transitioning between completely different concepts
+- Structure animations: Introduce → Explain → Remove → Next Topic
+- Example structure:
+  * Section 1: Introduction (show title, fade out)
+  * Section 2: Main concept (show, animate, fade out key elements)
+  * Section 3: Examples (clear previous, show examples)
+  * Section 4: Conclusion (summarize, fade out)
+
+SCENE ORGANIZATION TEMPLATE:
+\`\`\`python
+class ExampleAnimation(Scene):
+    def construct(self):
+        # Section 1: Introduction
+        self.next_section("Introduction")
+        title = Text("Topic Title")
+        self.play(FadeIn(title))
+        self.wait(1)
+        self.play(FadeOut(title))  # Remove before next section
+        
+        # Section 2: Main Content
+        self.next_section("Main Content")
+        main_obj = Circle()  # Clean slate, no overlap
+        self.play(Create(main_obj))
+        # ... animations ...
+        self.play(FadeOut(main_obj))  # Clean up
+        
+        # Section 3: Additional Content
+        self.next_section("Conclusion")
+        conclusion = Text("Summary")
+        self.play(FadeIn(conclusion))
+        self.wait(2)
+\`\`\`
+
 RESPONSE FORMAT:
 1. Brief explanation (1-2 sentences)
-2. Clean Python code block with proper formatting
+2. Clean Python code block with proper formatting and content management
 3. The code will be automatically compiled into a video animation
 
 EXAMPLES OF TOPIC EXTRACTION:
@@ -194,12 +230,23 @@ CRITICAL CODE FORMAT REQUIREMENTS:
 - Add brief comments only for complex parts
 - Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
 
+CONTENT MANAGEMENT REQUIREMENTS (CRITICAL TO PREVENT OVERLAPPING):
+- Use self.next_section("Section Name") to divide content into logical parts
+- Always use FadeOut() to remove objects before introducing new major content
+- Use self.clear() when transitioning between completely different concepts
+- Structure animations: Introduce → Explain → Remove → Next Topic
+- Example structure:
+  * Section 1: Introduction (show title, fade out)
+  * Section 2: Main concept (show, animate, fade out key elements)
+  * Section 3: Examples (clear previous, show examples)
+  * Section 4: Conclusion (summarize, fade out)
+
 RESPONSE FORMAT:
 1. Brief explanation (1-2 sentences)
-2. Clean Python code block with proper formatting
+2. Clean Python code block with proper formatting and content management
 3. The code will be automatically compiled into a video animation
 
-Extract the educational topic from the user's question and create appropriate Manim animation code.`,
+Extract the educational topic from the user's question and create appropriate Manim animation code with proper content management.`,
       messages: convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       onStepFinish: ({ text, finishReason, usage }) => {
