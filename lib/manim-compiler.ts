@@ -48,9 +48,9 @@ export async function compileManimCode(
     writeFileSync(filePath, pythonCode);
     console.log(`[MANIM-COMPILER] ✅ Python file written: ${filePath}`);
     
-    // Activate UV environment and run Manim
+    // Activate UV environment and run Manim with LaTeX support
     const uvEnvPath = path.join(process.cwd(), 'manim-test');
-    const command = `source ${uvEnvPath}/bin/activate && manim ${filePath} ${className} -ql --disable_caching`;
+    const command = `export LIBGS=/opt/homebrew/lib/libgs.dylib && eval "$(/usr/libexec/path_helper -s)" && source ${uvEnvPath}/bin/activate && manim ${filePath} ${className} -ql --disable_caching`;
     
     console.log(`[MANIM-COMPILER] 🚀 Executing: ${command}`);
     
