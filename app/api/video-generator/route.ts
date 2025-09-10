@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 import { 
   streamText, 
   convertToModelMessages, 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
     console.log('[VIDEO-GENERATOR] Step 3: Starting AI text streaming...');
     const result = streamText({
-      model: openai('gpt-5'),
+      model: google('gemini-2.5-pro'),
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 IMPORTANT: You have access to code management tools. NEVER include Python code in your text responses. Always use the writeCode tool.
@@ -219,7 +219,7 @@ NEVER include Python code in your text responses - only use the writeCode tool f
     };
     
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: google('gemini-2.5-flash'),
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.
