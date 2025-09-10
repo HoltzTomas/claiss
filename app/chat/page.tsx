@@ -189,9 +189,7 @@ export default function ClassiaChat() {
                 <p className="text-sm">
                   {message.parts.map((part, i) => {
                     if (part.type === "text") {
-                      // Remove code blocks from display while keeping other text
-                      const textWithoutCode = part.text.replace(/```[\s\S]*?```/g, "").trim()
-                      return <span key={i}>{textWithoutCode}</span>
+                      return <span key={i}>{part.text}</span>
                     }
                     return null
                   })}

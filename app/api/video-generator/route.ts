@@ -7,7 +7,7 @@ import {
   type UIMessage 
 } from 'ai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { compileManimCode, extractManimCode } from '@/lib/manim-compiler';
+import { writeCodeTool, readCodeTool } from '@/lib/code-tools';
 
 export const maxDuration = 30;
 
@@ -40,22 +40,33 @@ export async function POST(req: Request) {
 
     // Get tools from Context7 MCP server
     console.log('[VIDEO-GENERATOR] Step 2: Fetching tools from Context7...');
-    const tools = await mcpClient.tools();
-    console.log(`[VIDEO-GENERATOR] ✅ Retrieved ${Object.keys(tools || {}).length} tools from Context7`);
+    const context7Tools = await mcpClient.tools();
+    console.log(`[VIDEO-GENERATOR] ✅ Retrieved ${Object.keys(context7Tools || {}).length} tools from Context7`);
+    
+    // Combine Context7 tools with our code management tools
+    const tools = {
+      ...context7Tools,
+      writeCode: writeCodeTool,
+      readCode: readCodeTool,
+    };
+    console.log(`[VIDEO-GENERATOR] ✅ Total tools available: ${Object.keys(tools).length}`);
 
     console.log('[VIDEO-GENERATOR] Step 3: Starting AI text streaming...');
     const result = streamText({
       model: openai('gpt-5'),
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
+IMPORTANT: You have access to code management tools. NEVER include Python code in your text responses. Always use the writeCode tool.
+
 WORKFLOW FOR ANY EDUCATIONAL REQUEST:
-1. Extract the main topic from the user's question (e.g., "bubble sort", "physics simulation", "calculus", "data structures")
-2. ALWAYS use Context7 tools to search the /manimcommunity/manim library with the pattern: "{extracted_topic} examples animations"
-3. Return clean, working Python code using Manim for educational animations with proper content management
-4. Keep explanations minimal - focus on providing complete, runnable code
+1. If this is a modification request, FIRST use readCode tool to get existing code context
+2. Extract the main topic from the user's question (e.g., "bubble sort", "physics simulation", "calculus", "data structures")
+3. ALWAYS use Context7 tools to search the /manimcommunity/manim library with the pattern: "{extracted_topic} examples animations"
+4. Generate clean, working Python code using Manim for educational animations
+5. Use writeCode tool to save the code (this will automatically compile the video)
+6. Provide brief explanation in text response WITHOUT including any code
 
 CRITICAL CODE FORMAT REQUIREMENTS:
-- ALWAYS wrap Python code in \`\`\`python code blocks
 - Use proper Manim class structure: class [Topic]Animation(Scene)
 - Include necessary imports: from manim import *
 - Ensure code is complete and executable
@@ -74,7 +85,7 @@ CONTENT MANAGEMENT REQUIREMENTS (CRITICAL TO PREVENT OVERLAPPING):
   * Section 3: Examples (clear previous, show examples)
   * Section 4: Conclusion (summarize, fade out)
 
-SCENE ORGANIZATION TEMPLATE:
+SCENE ORGANIZATION TEMPLATE (FOLLOW THIS STRUCTURE):
 \`\`\`python
 class ExampleAnimation(Scene):
     def construct(self):
@@ -99,20 +110,31 @@ class ExampleAnimation(Scene):
         self.wait(2)
 \`\`\`
 
+CONTEXT AWARENESS FOR MODIFICATIONS:
+- When user asks to "change the color", "add something", or "modify" existing content, ALWAYS use readCode first
+- Understand the existing code structure before making changes
+- Preserve good parts of existing code while making requested modifications
+- Maintain the same class name and overall structure unless specifically asked to change
+- Keep the section-based organization from the template
+
 RESPONSE FORMAT:
-1. Brief explanation (1-2 sentences)
-2. Clean Python code block with proper formatting and content management
-3. The code will be automatically compiled into a video animation
+1. Use readCode tool if this is a modification (not for brand new requests)
+2. Use Context7 tools to get relevant documentation/examples
+3. Use writeCode tool with complete Python code following the scene template
+4. Provide brief explanation (1-2 sentences) in text - NO CODE IN TEXT
+5. The writeCode tool will automatically handle video compilation
 
 EXAMPLES OF TOPIC EXTRACTION:
 - "Explain how bubble sort works" → Search: "bubble sort examples animations"
 - "Show me linear regression" → Search: "linear regression examples animations"  
-- "How does a pendulum move?" → Search: "pendulum physics examples animations"
-- "What is calculus?" → Search: "calculus examples animations"
+- "Change the circle to red" → First readCode, then modify existing code
+- "Add a title to the animation" → First readCode, then enhance existing code
 
-ALWAYS use Context7 to get the most up-to-date Manim documentation and examples before generating code.`,
+ALWAYS use Context7 to get the most up-to-date Manim documentation and examples before generating code.
+ALWAYS follow the scene organization template for proper content management.
+NEVER include Python code in your text responses - only use the writeCode tool for code.`,
       messages: convertToModelMessages(messages),
-      tools, // Context7 tools: get-library-docs, resolve-library-id
+      tools, // Context7 tools + writeCode + readCode
       stopWhen: stepCountIs(5), // Enable multi-step tool usage
       onStepFinish: ({ text, toolCalls, toolResults, finishReason, usage }) => {
         console.log(`[VIDEO-GENERATOR] 📋 Step completed:`);
@@ -144,31 +166,7 @@ ALWAYS use Context7 to get the most up-to-date Manim documentation and examples 
           console.log(`[VIDEO-GENERATOR]   - Total token usage: ${usage.totalTokens}`);
         }
         
-        // Try to compile Manim code if present
-        if (text) {
-          console.log('[VIDEO-GENERATOR] Step 5: Checking for Manim code...');
-          const manimData = extractManimCode(text);
-          
-          if (manimData) {
-            console.log(`[VIDEO-GENERATOR] 🎬 Found Manim code with class: ${manimData.className}`);
-            console.log('[VIDEO-GENERATOR] Step 6: Compiling Manim animation...');
-            
-            try {
-              const compilationResult = await compileManimCode(manimData.code, manimData.className);
-              
-              if (compilationResult.success) {
-                console.log(`[VIDEO-GENERATOR] 🎉 Animation compiled successfully!`);
-                console.log(`[VIDEO-GENERATOR]   - Video URL: ${compilationResult.videoUrl}`);
-              } else {
-                console.error(`[VIDEO-GENERATOR] ❌ Animation compilation failed:`, compilationResult.error);
-              }
-            } catch (error) {
-              console.error(`[VIDEO-GENERATOR] ❌ Unexpected compilation error:`, error);
-            }
-          } else {
-            console.log('[VIDEO-GENERATOR] ℹ️  No Manim code detected in response');
-          }
-        }
+        console.log('[VIDEO-GENERATOR] ℹ️  Code generation handled by writeCode tool');
         
         // Cleanup MCP client when streaming finishes
         if (mcpClient) {
@@ -214,15 +212,28 @@ ALWAYS use Context7 to get the most up-to-date Manim documentation and examples 
     
     console.log('[VIDEO-GENERATOR] 🔄 Falling back to regular streaming without MCP tools...');
     
-    // Fallback to regular streaming without MCP tools
+    // Fallback to regular streaming without MCP tools but with code tools
+    const fallbackTools = {
+      writeCode: writeCodeTool,
+      readCode: readCodeTool,
+    };
+    
     const result = streamText({
       model: openai('gpt-4o'),
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.
 
+IMPORTANT: You have access to code management tools. NEVER include Python code in your text responses. Always use the writeCode tool.
+
+WORKFLOW FOR ANY EDUCATIONAL REQUEST:
+1. If this is a modification request, FIRST use readCode tool to get existing code context
+2. Extract the educational topic from the user's question
+3. Generate clean, working Python code using Manim for educational animations
+4. Use writeCode tool to save the code (this will automatically compile the video)
+5. Provide brief explanation in text response WITHOUT including any code
+
 CRITICAL CODE FORMAT REQUIREMENTS:
-- ALWAYS wrap Python code in \`\`\`python code blocks
 - Use proper Manim class structure: class [Topic]Animation(Scene)
 - Include necessary imports: from manim import *
 - Ensure code is complete and executable
@@ -235,19 +246,48 @@ CONTENT MANAGEMENT REQUIREMENTS (CRITICAL TO PREVENT OVERLAPPING):
 - Always use FadeOut() to remove objects before introducing new major content
 - Use self.clear() when transitioning between completely different concepts
 - Structure animations: Introduce → Explain → Remove → Next Topic
-- Example structure:
-  * Section 1: Introduction (show title, fade out)
-  * Section 2: Main concept (show, animate, fade out key elements)
-  * Section 3: Examples (clear previous, show examples)
-  * Section 4: Conclusion (summarize, fade out)
+
+SCENE ORGANIZATION TEMPLATE (FOLLOW THIS STRUCTURE):
+\`\`\`python
+class ExampleAnimation(Scene):
+    def construct(self):
+        # Section 1: Introduction
+        self.next_section("Introduction")
+        title = Text("Topic Title")
+        self.play(FadeIn(title))
+        self.wait(1)
+        self.play(FadeOut(title))  # Remove before next section
+        
+        # Section 2: Main Content
+        self.next_section("Main Content")
+        main_obj = Circle()  # Clean slate, no overlap
+        self.play(Create(main_obj))
+        # ... animations ...
+        self.play(FadeOut(main_obj))  # Clean up
+        
+        # Section 3: Additional Content
+        self.next_section("Conclusion")
+        conclusion = Text("Summary")
+        self.play(FadeIn(conclusion))
+        self.wait(2)
+\`\`\`
+
+CONTEXT AWARENESS FOR MODIFICATIONS:
+- When user asks to "change the color", "add something", or "modify" existing content, ALWAYS use readCode first
+- Understand the existing code structure before making changes
+- Preserve good parts of existing code while making requested modifications
+- Keep the section-based organization from the template
 
 RESPONSE FORMAT:
-1. Brief explanation (1-2 sentences)
-2. Clean Python code block with proper formatting and content management
-3. The code will be automatically compiled into a video animation
+1. Use readCode tool if this is a modification (not for brand new requests)
+2. Use writeCode tool with complete Python code following the scene template
+3. Provide brief explanation (1-2 sentences) in text - NO CODE IN TEXT
+4. The writeCode tool will automatically handle video compilation
 
-Extract the educational topic from the user's question and create appropriate Manim animation code with proper content management.`,
+ALWAYS follow the scene organization template for proper content management.
+NEVER include Python code in your text responses - only use the writeCode tool for code.`,
       messages: convertToModelMessages(messages),
+      tools: fallbackTools,
       stopWhen: stepCountIs(5),
       onStepFinish: ({ text, finishReason, usage }) => {
         console.log(`[VIDEO-GENERATOR] 📋 Fallback Step completed:`);
@@ -270,31 +310,7 @@ Extract the educational topic from the user's question and create appropriate Ma
           console.log(`[VIDEO-GENERATOR]   - Total token usage: ${usage.totalTokens}`);
         }
         
-        // Try to compile Manim code if present (fallback scenario)
-        if (text) {
-          console.log('[VIDEO-GENERATOR] Step 5: Checking for Manim code (fallback)...');
-          const manimData = extractManimCode(text);
-          
-          if (manimData) {
-            console.log(`[VIDEO-GENERATOR] 🎬 Found Manim code with class: ${manimData.className}`);
-            console.log('[VIDEO-GENERATOR] Step 6: Compiling Manim animation (fallback)...');
-            
-            try {
-              const compilationResult = await compileManimCode(manimData.code, manimData.className);
-              
-              if (compilationResult.success) {
-                console.log(`[VIDEO-GENERATOR] 🎉 Animation compiled successfully!`);
-                console.log(`[VIDEO-GENERATOR]   - Video URL: ${compilationResult.videoUrl}`);
-              } else {
-                console.error(`[VIDEO-GENERATOR] ❌ Animation compilation failed:`, compilationResult.error);
-              }
-            } catch (error) {
-              console.error(`[VIDEO-GENERATOR] ❌ Unexpected compilation error:`, error);
-            }
-          } else {
-            console.log('[VIDEO-GENERATOR] ℹ️  No Manim code detected in fallback response');
-          }
-        }
+        console.log('[VIDEO-GENERATOR] ℹ️  Code generation handled by writeCode tool (fallback)');
       },
       onError: async ({ error }) => {
         const fallbackEndTime = Date.now();
