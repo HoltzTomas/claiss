@@ -25,6 +25,11 @@ export default function ClassiaChat() {
     transport: new DefaultChatTransport({
       api: "/api/video-generator",
     }),
+    onFinish: ({ message }) => {
+      console.log("[FRONTEND] AI finished streaming, checking for video...")
+      // Start video checking when AI is done
+      checkVideoWithRetries()
+    },
   })
 
   const isLoading = status === "streaming"
@@ -39,6 +44,9 @@ export default function ClassiaChat() {
         setVideoUrl(testUrl)
         setIsCompilingVideo(false)
         return true
+      } else if (response.status === 416) {
+        // File exists but still being written (Range Not Satisfiable) - keep polling
+        return false
       } else {
         setHasVideo(false)
         setVideoUrl("")
@@ -51,54 +59,34 @@ export default function ClassiaChat() {
     }
   }
 
-  // Polling effect for video compilation
-  useEffect(() => {
-    let pollInterval: NodeJS.Timeout | null = null
-    let pollAttempts = 0
-    const maxPollAttempts = 30 // 60 seconds max (30 * 2s)
-
-    const startPolling = () => {
-      if (pollInterval) clearInterval(pollInterval)
-
-      setIsCompilingVideo(true)
-      pollInterval = setInterval(async () => {
-        pollAttempts++
-        console.log(`[FRONTEND] Polling for video... attempt ${pollAttempts}`)
-
-        const found = await checkForVideo()
-
-        if (found || pollAttempts >= maxPollAttempts) {
-          if (pollInterval) {
-            clearInterval(pollInterval)
-            pollInterval = null
-          }
-          if (!found) {
-            setIsCompilingVideo(false)
-          } else {
-            // Video was found, which means code was successfully generated
-            setHasGeneratedCode(true)
-          }
-          pollAttempts = 0
-        }
-      }, 2000) // Poll every 2 seconds
+  // Smart video checking with retries instead of continuous polling
+  const checkVideoWithRetries = async (attempt = 1, maxAttempts = 10) => {
+    setIsCompilingVideo(true)
+    console.log(`[FRONTEND] Checking for video... attempt ${attempt}`)
+    
+    const found = await checkForVideo()
+    
+    if (found) {
+      setHasGeneratedCode(true)
+      setIsCompilingVideo(false)
+      console.log("[FRONTEND] ✅ Video found!")
+      return
     }
-
-    // Start polling when AI finishes streaming (video compilation begins)
-    if (!isLoading && messages.length > 0 && !hasVideo) {
-      const lastMessage = messages[messages.length - 1]
-      if (lastMessage?.role === "assistant") {
-        console.log("[FRONTEND] AI finished streaming, starting video polling...")
-        startPolling()
-      }
+    
+    if (attempt >= maxAttempts) {
+      setIsCompilingVideo(false)
+      console.log("[FRONTEND] ❌ Max attempts reached, video not found")
+      return
     }
-
-    // Cleanup polling on unmount
-    return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval)
-      }
-    }
-  }, [isLoading, messages, hasVideo])
+    
+    // Wait with exponential backoff: 1s, 2s, 4s, 6s, 8s, 10s...
+    const delay = Math.min(attempt * 2000, 10000)
+    console.log(`[FRONTEND] Waiting ${delay}ms before next attempt...`)
+    
+    setTimeout(() => {
+      checkVideoWithRetries(attempt + 1, maxAttempts)
+    }, delay)
+  }
 
   // Initial check for video on mount
   useEffect(() => {

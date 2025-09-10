@@ -1,97 +1,131 @@
 from manim import *
 
-class BubbleSortAnimation(Scene):
+class QuickSortAnimation(Scene):
     def construct(self):
-        # Data
-        numbers = [5, 2, 8, 1, 9, 4]
-        n = len(numbers)
-
-        # Create visual representation of the array
-        squares = VGroup(*[Square(side_length=1, fill_color=YELLOW, fill_opacity=0.5) for _ in numbers])
-        labels = VGroup(*[Text(str(num)) for num in numbers])
+        # Data for the array
+        array_data = [8, 2, 5, 3, 9, 4, 7, 6, 1]
         
-        for square, label in zip(squares, labels):
-            label.move_to(square.get_center())
-
-        array = VGroup(*[VGroup(sq, lbl) for sq, lbl in zip(squares, labels)])
-        array.arrange(RIGHT, buff=0.5)
-
-        # --- Introduction ---
+        # --- Section 1: Introduction ---
         self.next_section("Introduction")
-        title = Text("Bubble Sort Algorithm", font_size=48)
-        self.play(Write(title), run_time=0.8)
-        self.wait(0.5)
-        self.play(FadeOut(title), run_time=0.5)
-        
-        # --- Sorting Process ---
-        self.next_section("Sorting Process")
-        explanation = Text("We compare adjacent elements and swap them if they are in the wrong order.", font_size=24).to_edge(UP)
-        self.play(FadeIn(explanation), run_time=0.8)
-        self.play(Create(array), run_time=0.8)
-        self.wait(0.5)
-
-        # Pointers
-        pointer1 = Triangle(fill_opacity=1, color=YELLOW).scale(0.2).next_to(array[0], DOWN)
-        pointer2 = Triangle(fill_opacity=1, color=YELLOW).scale(0.2).next_to(array[1], DOWN)
-        self.play(Create(pointer1), Create(pointer2), run_time=0.5)
-        self.wait(0.5)
-
-        # Bubble sort logic
-        for i in range(n):
-            swapped = False
-            for j in range(0, n - i - 1):
-                # Move pointers
-                self.play(
-                    pointer1.animate.next_to(array[j], DOWN),
-                    pointer2.animate.next_to(array[j + 1], DOWN),
-                    run_time=0.3
-                )
-
-                # Highlight elements being compared
-                self.play(
-                    array[j][0].animate.set_fill(BLUE, opacity=0.5),
-                    array[j + 1][0].animate.set_fill(BLUE, opacity=0.5),
-                    run_time=0.3
-                )
-
-                if numbers[j] > numbers[j + 1]:
-                    # Swap numbers in the list
-                    numbers[j], numbers[j + 1] = numbers[j + 1], numbers[j]
-                    swapped = True
-                    
-                    # Animate the swap
-                    pos_j = array[j].get_center()
-                    pos_j1 = array[j+1].get_center()
-                    self.play(
-                        array[j].animate.move_to(pos_j1),
-                        array[j+1].animate.move_to(pos_j),
-                        run_time=0.6
-                    )
-                    # Swap mobjects in the VGroup for correct positioning in the next steps
-                    array[j], array[j+1] = array[j+1], array[j]
-
-                # Unhighlight
-                self.play(
-                    array[j][0].animate.set_fill(YELLOW, opacity=0.5),
-                    array[j + 1][0].animate.set_fill(YELLOW, opacity=0.5),
-                    run_time=0.3
-                )
-
-            # Mark the sorted element
-            self.play(array[n - i - 1][0].animate.set_fill(GREEN, opacity=0.7), run_time=0.5)
-            
-            if not swapped:
-                # If no swaps occurred, the array is sorted
-                for k in range(n - i - 1):
-                    self.play(array[k][0].animate.set_fill(GREEN, opacity=0.7), run_time=0.1)
-                break
-        
-        # --- Conclusion ---
-        self.next_section("Conclusion")
-        self.play(FadeOut(pointer1), FadeOut(pointer2), FadeOut(explanation), run_time=0.5)
-        
-        sorted_text = Text("Array is Sorted!", font_size=48).to_edge(UP)
-        self.play(Write(sorted_text), run_time=0.8)
+        title = Text("Quicksort Algorithm", font_size=48)
+        subtitle = Text("A divide-and-conquer sorting algorithm", font_size=24).next_to(title, DOWN, buff=0.3)
+        title_group = VGroup(title, subtitle)
+        self.play(Write(title_group), run_time=1)
         self.wait(1)
-        self.play(FadeOut(sorted_text), FadeOut(array), run_time=0.5)
+        self.play(FadeOut(title_group), run_time=0.5)
+
+        # --- Section 2: Array Initialization ---
+        self.next_section("Array Initialization")
+        
+        # Create visual representation of the array
+        squares = VGroup()
+        for num in array_data:
+            square = Square(side_length=1.0)
+            text = Text(str(num)).move_to(square.get_center())
+            element = VGroup(square, text)
+            squares.add(element)
+        
+        squares.arrange(RIGHT, buff=0.2)
+        
+        array_label = Text("Unsorted Array").next_to(squares, UP, buff=0.5)
+        self.play(FadeIn(array_label), Create(squares), run_time=0.5)
         self.wait(0.5)
+        self.play(FadeOut(array_label), run_time=0.5)
+        
+        # --- Section 3: Sorting Animation ---
+        self.next_section("Sorting Animation")
+        
+        # Start the recursive quicksort animation
+        self.quicksort_animation(squares, 0, len(array_data) - 1)
+        
+        # --- Section 4: Conclusion ---
+        self.next_section("Conclusion")
+        sorted_label = Text("Array is Sorted!", font_size=40).next_to(squares, UP, buff=0.5)
+        self.play(Write(sorted_label), run_time=0.5)
+        self.wait(1)
+        self.play(FadeOut(sorted_label), FadeOut(squares), run_time=0.5)
+        self.wait(0.5)
+
+    def quicksort_animation(self, squares, low, high):
+        if low < high:
+            # Partition the array and get the pivot index
+            pivot_index = self.partition_animation(squares, low, high)
+            
+            # Recursively sort the two sub-arrays
+            self.quicksort_animation(squares, low, pivot_index - 1)
+            self.quicksort_animation(squares, pivot_index + 1, high)
+
+    def partition_animation(self, squares, low, high):
+        pivot_element = squares[high]
+        pivot_value = int(squares[high][1].text)
+        
+        # Highlight the pivot
+        pivot_text = Text("Pivot", font_size=24).next_to(pivot_element, DOWN, buff=0.5)
+        self.play(
+            pivot_element[0].animate.set_fill(YELLOW, opacity=0.5),
+            Write(pivot_text),
+            run_time=0.5
+        )
+        self.wait(0.5)
+
+        i = low - 1
+        
+        # Create pointers
+        i_pointer = Arrow(start=UP, end=DOWN, max_tip_length_to_length_ratio=0.35, color=BLUE)
+        i_text = Text("i", font_size=24).next_to(i_pointer, UP)
+        i_group = VGroup(i_pointer, i_text).next_to(squares[low], UP, buff=0.1).shift(LEFT * 1.2)
+        
+        j_pointer = Arrow(start=UP, end=DOWN, max_tip_length_to_length_ratio=0.35, color=ORANGE)
+        j_text = Text("j", font_size=24).next_to(j_pointer, UP)
+        j_group = VGroup(j_pointer, j_text).next_to(squares[low], UP, buff=0.1)
+
+        self.play(Create(i_group), Create(j_group), run_time=0.5)
+        
+        for j in range(low, high):
+            self.play(j_group.animate.next_to(squares[j], UP, buff=0.1), run_time=0.25)
+            self.wait(0.25)
+            
+            j_value = int(squares[j][1].text)
+            
+            # Highlight comparison
+            self.play(squares[j][0].animate.set_fill(BLUE, opacity=0.5), run_time=0.25)
+            
+            if j_value < pivot_value:
+                i += 1
+                self.play(i_group.animate.next_to(squares[i], UP, buff=0.1), run_time=0.25)
+                
+                # Swap elements
+                pos_i, pos_j = squares[i].get_center(), squares[j].get_center()
+                self.play(
+                    squares[i].animate.move_to(pos_j),
+                    squares[j].animate.move_to(pos_i),
+                    run_time=0.5
+                )
+                squares[i], squares[j] = squares[j], squares[i]
+                self.wait(0.25)
+            
+            # Unhighlight
+            self.play(squares[j][0].animate.set_fill(BLACK, opacity=0), run_time=0.25)
+
+
+        # Swap pivot with element at i+1
+        i += 1
+        pos_pivot, pos_i1 = squares[high].get_center(), squares[i].get_center()
+        self.play(
+            squares[high].animate.move_to(pos_i1),
+            squares[i].animate.move_to(pos_pivot),
+            run_time=0.5
+        )
+        squares[high], squares[i] = squares[i], squares[high]
+        self.wait(0.5)
+        
+        # Mark pivot as sorted
+        self.play(
+            squares[i][0].animate.set_fill(GREEN, opacity=0.7),
+            FadeOut(pivot_text),
+            FadeOut(i_group),
+            FadeOut(j_group),
+            run_time=0.5
+        )
+        
+        return i
