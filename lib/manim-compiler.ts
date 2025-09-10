@@ -14,9 +14,8 @@ export async function compileManimCode(
   pythonCode: string, 
   className: string = 'Scene'
 ): Promise<ManimCompilationResult> {
-  const timestamp = Date.now();
-  const tempDir = `/tmp/manim-${timestamp}`;
-  const fileName = `animation_${timestamp}.py`;
+  const tempDir = `/tmp/manim-current`;
+  const fileName = `current_animation.py`;
   const filePath = path.join(tempDir, fileName);
   const outputDir = path.join(process.cwd(), 'public', 'videos');
   
@@ -64,7 +63,7 @@ export async function compileManimCode(
     console.log(`[MANIM-COMPILER] ✅ Compilation completed`);
     
     // Find the generated video file in the standard Manim output structure
-    const manimOutputPath = path.join(tempDir, 'media', 'videos', fileName.replace('.py', ''), '480p15', `${className}.mp4`);
+    const manimOutputPath = path.join(tempDir, 'media', 'videos', 'current_animation', '480p15', `${className}.mp4`);
     const finalVideoPath = path.join(outputDir, 'latest.mp4'); // Always use 'latest.mp4' as filename
     
     console.log(`[MANIM-COMPILER] 🔍 Looking for video at: ${manimOutputPath}`);

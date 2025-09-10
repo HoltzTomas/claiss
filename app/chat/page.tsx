@@ -32,7 +32,7 @@ export default function ClassiaChat() {
   // Check for latest video
   const checkForVideo = async () => {
     try {
-      const testUrl = `https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_6BP1I5ITTawJUoFdn9HTWEVvfVF9/3r2IQizyR7jAND8hLUOhXX/public/videos/latest.mp4?t=${Date.now()}` // Cache busting
+      const testUrl = `/videos/latest.mp4` // Cache busting
       const response = await fetch(testUrl, { method: "HEAD" })
       if (response.ok) {
         setHasVideo(true)
@@ -131,7 +131,7 @@ export default function ClassiaChat() {
 
   // Fetch code when switching to code tab and we have generated code
   useEffect(() => {
-    if (activeTab === "code" && hasGeneratedCode && !currentCode) {
+    if (!currentCode) {
       fetchCurrentCode()
     }
   }, [activeTab, hasGeneratedCode, currentCode])
