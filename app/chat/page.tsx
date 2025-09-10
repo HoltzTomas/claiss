@@ -17,6 +17,9 @@ export default function ClassiaChat() {
   const [videoUrl, setVideoUrl] = useState("")
   const [isCompilingVideo, setIsCompilingVideo] = useState(false)
   const [activeTab, setActiveTab] = useState<"video" | "code">("video")
+  const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
+  const [currentCode, setCurrentCode] = useState<string | null>(null)
+  const [isLoadingCode, setIsLoadingCode] = useState(false)
   
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -71,6 +74,9 @@ export default function ClassiaChat() {
           }
           if (!found) {
             setIsCompilingVideo(false)
+          } else {
+            // Video was found, which means code was successfully generated
+            setHasGeneratedCode(true)
           }
           pollAttempts = 0
         }
@@ -98,6 +104,37 @@ export default function ClassiaChat() {
   useEffect(() => {
     checkForVideo()
   }, [])
+
+  // Fetch current code when switching to code tab
+  const fetchCurrentCode = async () => {
+    if (isLoadingCode) return
+    
+    setIsLoadingCode(true)
+    try {
+      const response = await fetch('/api/current-code')
+      const data = await response.json()
+      
+      if (data.success && data.hasCode) {
+        setCurrentCode(data.code)
+        console.log('[FRONTEND] Current code loaded successfully')
+      } else {
+        setCurrentCode(null)
+        console.log('[FRONTEND] No current code found')
+      }
+    } catch (error) {
+      console.error('[FRONTEND] Error fetching current code:', error)
+      setCurrentCode(null)
+    } finally {
+      setIsLoadingCode(false)
+    }
+  }
+
+  // Fetch code when switching to code tab and we have generated code
+  useEffect(() => {
+    if (activeTab === "code" && hasGeneratedCode && !currentCode) {
+      fetchCurrentCode()
+    }
+  }, [activeTab, hasGeneratedCode, currentCode])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -196,7 +233,7 @@ export default function ClassiaChat() {
 
       {/* Content Area */}
       <div className="w-1/2 flex flex-col">
-      {messages.length > 0 && (
+      {messages.length > 0 && hasGeneratedCode && (
           <div className="border-b border-border/50 p-4">
             <div className="flex gap-2">
               <button
@@ -293,83 +330,29 @@ export default function ClassiaChat() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <pre className="text-xs text-foreground/90 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
-{`from manim import *
-
-class BubbleSortAnimation(Scene):
-    def construct(self):
-        # Section 1: Introduction
-        self.next_section("Introduction")
-        title = Text("Bubble Sort Algorithm", font_size=48)
-        subtitle = Text("A step-by-step visualization", font_size=32)
-        subtitle.next_to(title, DOWN, buff=0.5)
-        
-        self.play(FadeIn(title))
-        self.play(FadeIn(subtitle))
-        self.wait(1)
-        self.play(FadeOut(title), FadeOut(subtitle))
-        
-        # Section 2: Array Setup
-        self.next_section("Array Setup")
-        array_values = [64, 34, 25, 12, 22, 11, 90]
-        bars = VGroup()
-        
-        for i, value in enumerate(array_values):
-            bar = Rectangle(width=0.8, height=value/20, fill_opacity=0.7)
-            bar.set_fill(BLUE)
-            bar.shift(RIGHT * (i - 3) * 1.2)
-            text = Text(str(value), font_size=24)
-            text.next_to(bar, DOWN)
-            bars.add(VGroup(bar, text))
-        
-        self.play(Create(bars))
-        self.wait(1)
-        
-        # Section 3: Sorting Process
-        self.next_section("Sorting Process")
-        n = len(array_values)
-        
-        for i in range(n):
-            for j in range(0, n-i-1):
-                if array_values[j] > array_values[j+1]:
-                    # Highlight comparison
-                    self.play(
-                        bars[j][0].animate.set_fill(RED),
-                        bars[j+1][0].animate.set_fill(RED)
-                    )
-                    
-                    # Swap
-                    array_values[j], array_values[j+1] = array_values[j+1], array_values[j]
-                    self.play(
-                        bars[j].animate.shift(RIGHT * 1.2),
-                        bars[j+1].animate.shift(LEFT * 1.2)
-                    )
-                    bars[j], bars[j+1] = bars[j+1], bars[j]
-                    
-                    # Reset colors
-                    self.play(
-                        bars[j][0].animate.set_fill(BLUE),
-                        bars[j+1][0].animate.set_fill(BLUE)
-                    )
-                else:
-                    # Just highlight and reset
-                    self.play(
-                        bars[j][0].animate.set_fill(YELLOW),
-                        bars[j+1][0].animate.set_fill(YELLOW)
-                    )
-                    self.play(
-                        bars[j][0].animate.set_fill(BLUE),
-                        bars[j+1][0].animate.set_fill(BLUE)
-                    )
-        
-        # Section 4: Completion
-        self.next_section("Completion")
-        self.play(*[bar[0].animate.set_fill(GREEN) for bar in bars])
-        completion_text = Text("Sorted!", font_size=48, color=GREEN)
-        completion_text.to_edge(UP)
-        self.play(FadeIn(completion_text))
-        self.wait(2)`}
-                    </pre>
+                    {isLoadingCode ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <span className="ml-2 text-sm text-muted-foreground">Loading code...</span>
+                      </div>
+                    ) : currentCode ? (
+                      <pre className="text-xs text-foreground/90 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                        {currentCode}
+                      </pre>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="w-12 h-12 glassmorphism rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Code className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">No code available</p>
+                        <button 
+                          onClick={fetchCurrentCode}
+                          className="text-xs text-primary hover:underline mt-2"
+                        >
+                          Try refreshing
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

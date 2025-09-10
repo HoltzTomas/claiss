@@ -8,8 +8,103 @@ import {
 } from 'ai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { compileManimCode, extractManimCode } from '@/lib/manim-compiler';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs';
+import path from 'path';
 
 export const maxDuration = 30;
+
+// Code persistence utilities
+function getCodeStoragePath(): string {
+  return path.join(process.cwd(), 'temp', 'current-code.py');
+}
+
+function saveCurrentCode(code: string): void {
+  const codePath = getCodeStoragePath();
+  mkdirSync(path.dirname(codePath), { recursive: true });
+  writeFileSync(codePath, code);
+  console.log(`[VIDEO-GENERATOR] 💾 Code saved to: ${codePath}`);
+}
+
+function getCurrentCode(): string | null {
+  const codePath = getCodeStoragePath();
+  if (existsSync(codePath)) {
+    return readFileSync(codePath, 'utf8');
+  }
+  return null;
+}
+
+// System prompt for creation mode (no existing code)
+function createCreationSystemPrompt(): string {
+  return `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
+
+WORKFLOW FOR ANY EDUCATIONAL REQUEST:
+1. Extract the main topic from the user's question (e.g., "bubble sort", "physics simulation", "calculus", "data structures")
+2. ALWAYS use Context7 tools to search the /manimcommunity/manim library with the pattern: "{extracted_topic} examples animations"
+3. Return clean, working Python code using Manim for educational animations with proper content management
+4. Keep explanations minimal - focus on providing complete, runnable code
+
+CRITICAL CODE FORMAT REQUIREMENTS:
+- ALWAYS wrap Python code in \`\`\`python code blocks
+- Use proper Manim class structure: class [Topic]Animation(Scene)
+- Include necessary imports: from manim import *
+- Ensure code is complete and executable
+- Use modern Manim syntax (avoid deprecated methods like .set_fill())
+- Add brief comments only for complex parts
+- Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
+
+CONTENT MANAGEMENT REQUIREMENTS (CRITICAL TO PREVENT OVERLAPPING):
+- Use self.next_section("Section Name") to divide content into logical parts
+- Always use FadeOut() to remove objects before introducing new major content
+- Use self.clear() when transitioning between completely different concepts
+- Structure animations: Introduce → Explain → Remove → Next Topic
+
+RESPONSE FORMAT:
+1. Brief explanation (1-2 sentences)
+2. Clean Python code block with proper formatting and content management
+3. The code will be automatically compiled into a video animation
+
+ALWAYS use Context7 to get the most up-to-date Manim documentation and examples before generating code.`;
+}
+
+// System prompt for editing mode (existing code available)
+function createEditingSystemPrompt(existingCode: string): string {
+  return `You are Classia AI Video Editor, specialized in modifying existing Manim animations based on user feedback.
+
+CURRENT CODE CONTEXT:
+You are working with this existing Manim code:
+\`\`\`python
+${existingCode}
+\`\`\`
+
+YOUR ROLE:
+- Modify the existing code based on user requests
+- Maintain the overall structure and working functionality
+- Apply precise, targeted changes rather than complete rewrites
+- Preserve scene sections and content management patterns
+- Keep the same class name unless specifically requested to change it
+
+EDITING PRINCIPLES:
+1. **Targeted Changes**: Make specific modifications to address user requests
+2. **Preserve Structure**: Keep existing scene sections and organization
+3. **Code Quality**: Ensure modifications maintain Manim best practices
+4. **Content Management**: Preserve FadeIn/FadeOut patterns and section management
+5. **Incremental Improvements**: Build on existing functionality
+
+CRITICAL CODE FORMAT REQUIREMENTS:
+- ALWAYS wrap modified Python code in \`\`\`python code blocks
+- Return the COMPLETE modified code, not just the changes
+- Maintain proper Manim class structure and imports
+- Preserve class name unless user specifically requests a change
+- Keep existing scene sections unless modifying them
+- Ensure code remains complete and executable
+
+EDITING RESPONSE FORMAT:
+1. Brief explanation of changes made (1-2 sentences)
+2. Complete modified Python code block
+3. The updated code will be automatically compiled into a video
+
+Extract the specific modification request and apply it to the existing code systematically.`;
+}
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -17,6 +112,15 @@ export async function POST(req: Request) {
   
   console.log(`[VIDEO-GENERATOR] Starting request at ${new Date().toISOString()}`);
   console.log(`[VIDEO-GENERATOR] Messages received:`, messages.length);
+
+  // Auto-detect mode: check for existing code
+  const existingCode = getCurrentCode();
+  const isEditingMode = existingCode !== null;
+  
+  console.log(`[VIDEO-GENERATOR] Mode detected: ${isEditingMode ? 'EDITING' : 'CREATING'}`);
+  if (isEditingMode) {
+    console.log(`[VIDEO-GENERATOR] Existing code found: ${existingCode.length} characters`);
+  }
 
   let mcpClient: any = null;
 
@@ -44,73 +148,15 @@ export async function POST(req: Request) {
     console.log(`[VIDEO-GENERATOR] ✅ Retrieved ${Object.keys(tools || {}).length} tools from Context7`);
 
     console.log('[VIDEO-GENERATOR] Step 3: Starting AI text streaming...');
+    
+    // Create unified system prompt based on mode
+    const systemPrompt = isEditingMode 
+      ? createEditingSystemPrompt(existingCode!)
+      : createCreationSystemPrompt();
+    
     const result = streamText({
       model: openai('gpt-5'),
-      system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
-
-WORKFLOW FOR ANY EDUCATIONAL REQUEST:
-1. Extract the main topic from the user's question (e.g., "bubble sort", "physics simulation", "calculus", "data structures")
-2. ALWAYS use Context7 tools to search the /manimcommunity/manim library with the pattern: "{extracted_topic} examples animations"
-3. Return clean, working Python code using Manim for educational animations with proper content management
-4. Keep explanations minimal - focus on providing complete, runnable code
-
-CRITICAL CODE FORMAT REQUIREMENTS:
-- ALWAYS wrap Python code in \`\`\`python code blocks
-- Use proper Manim class structure: class [Topic]Animation(Scene)
-- Include necessary imports: from manim import *
-- Ensure code is complete and executable
-- Use modern Manim syntax (avoid deprecated methods like .set_fill())
-- Add brief comments only for complex parts
-- Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
-
-CONTENT MANAGEMENT REQUIREMENTS (CRITICAL TO PREVENT OVERLAPPING):
-- Use self.next_section("Section Name") to divide content into logical parts
-- Always use FadeOut() to remove objects before introducing new major content
-- Use self.clear() when transitioning between completely different concepts
-- Structure animations: Introduce → Explain → Remove → Next Topic
-- Example structure:
-  * Section 1: Introduction (show title, fade out)
-  * Section 2: Main concept (show, animate, fade out key elements)
-  * Section 3: Examples (clear previous, show examples)
-  * Section 4: Conclusion (summarize, fade out)
-
-SCENE ORGANIZATION TEMPLATE:
-\`\`\`python
-class ExampleAnimation(Scene):
-    def construct(self):
-        # Section 1: Introduction
-        self.next_section("Introduction")
-        title = Text("Topic Title")
-        self.play(FadeIn(title))
-        self.wait(1)
-        self.play(FadeOut(title))  # Remove before next section
-        
-        # Section 2: Main Content
-        self.next_section("Main Content")
-        main_obj = Circle()  # Clean slate, no overlap
-        self.play(Create(main_obj))
-        # ... animations ...
-        self.play(FadeOut(main_obj))  # Clean up
-        
-        # Section 3: Additional Content
-        self.next_section("Conclusion")
-        conclusion = Text("Summary")
-        self.play(FadeIn(conclusion))
-        self.wait(2)
-\`\`\`
-
-RESPONSE FORMAT:
-1. Brief explanation (1-2 sentences)
-2. Clean Python code block with proper formatting and content management
-3. The code will be automatically compiled into a video animation
-
-EXAMPLES OF TOPIC EXTRACTION:
-- "Explain how bubble sort works" → Search: "bubble sort examples animations"
-- "Show me linear regression" → Search: "linear regression examples animations"  
-- "How does a pendulum move?" → Search: "pendulum physics examples animations"
-- "What is calculus?" → Search: "calculus examples animations"
-
-ALWAYS use Context7 to get the most up-to-date Manim documentation and examples before generating code.`,
+      system: systemPrompt,
       messages: convertToModelMessages(messages),
       tools, // Context7 tools: get-library-docs, resolve-library-id
       stopWhen: stepCountIs(5), // Enable multi-step tool usage
@@ -151,6 +197,10 @@ ALWAYS use Context7 to get the most up-to-date Manim documentation and examples 
           
           if (manimData) {
             console.log(`[VIDEO-GENERATOR] 🎬 Found Manim code with class: ${manimData.className}`);
+            
+            // Save the generated/modified code for future editing
+            saveCurrentCode(manimData.code);
+            
             console.log('[VIDEO-GENERATOR] Step 6: Compiling Manim animation...');
             
             try {
@@ -217,36 +267,9 @@ ALWAYS use Context7 to get the most up-to-date Manim documentation and examples 
     // Fallback to regular streaming without MCP tools
     const result = streamText({
       model: openai('gpt-4o'),
-      system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
-
-Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.
-
-CRITICAL CODE FORMAT REQUIREMENTS:
-- ALWAYS wrap Python code in \`\`\`python code blocks
-- Use proper Manim class structure: class [Topic]Animation(Scene)
-- Include necessary imports: from manim import *
-- Ensure code is complete and executable
-- Use modern Manim syntax (avoid deprecated methods like .set_fill())
-- Add brief comments only for complex parts
-- Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
-
-CONTENT MANAGEMENT REQUIREMENTS (CRITICAL TO PREVENT OVERLAPPING):
-- Use self.next_section("Section Name") to divide content into logical parts
-- Always use FadeOut() to remove objects before introducing new major content
-- Use self.clear() when transitioning between completely different concepts
-- Structure animations: Introduce → Explain → Remove → Next Topic
-- Example structure:
-  * Section 1: Introduction (show title, fade out)
-  * Section 2: Main concept (show, animate, fade out key elements)
-  * Section 3: Examples (clear previous, show examples)
-  * Section 4: Conclusion (summarize, fade out)
-
-RESPONSE FORMAT:
-1. Brief explanation (1-2 sentences)
-2. Clean Python code block with proper formatting and content management
-3. The code will be automatically compiled into a video animation
-
-Extract the educational topic from the user's question and create appropriate Manim animation code with proper content management.`,
+      system: isEditingMode 
+        ? createEditingSystemPrompt(existingCode!) + "\\n\\nNote: Context7 integration is currently unavailable, so modify the existing code based on your training data."
+        : createCreationSystemPrompt() + "\\n\\nNote: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.",
       messages: convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       onStepFinish: ({ text, finishReason, usage }) => {
@@ -277,6 +300,10 @@ Extract the educational topic from the user's question and create appropriate Ma
           
           if (manimData) {
             console.log(`[VIDEO-GENERATOR] 🎬 Found Manim code with class: ${manimData.className}`);
+            
+            // Save the generated/modified code for future editing (fallback scenario)
+            saveCurrentCode(manimData.code);
+            
             console.log('[VIDEO-GENERATOR] Step 6: Compiling Manim animation (fallback)...');
             
             try {
