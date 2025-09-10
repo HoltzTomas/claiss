@@ -1,0 +1,2 @@
+# This file is used internally by FFMPEG.
+file 'file:/Users/tomasholtz/Documents/GitHub/classia-frontend/media/videos/test_manim_latex/480p15/partial_movie_files/TestLatex/uncached_00000.mp4'
