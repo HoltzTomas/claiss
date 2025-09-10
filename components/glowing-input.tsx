@@ -7,7 +7,7 @@ interface GlowingInputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export function GlowingInput({ className, variant = "default", ...props }: GlowingInputProps) {
   return (
-    <div className="relative">
+    <div className=" w-full flex">
       <input
         className={cn(
           "w-full px-4 py-3 rounded-xl bg-input text-foreground",

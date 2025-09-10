@@ -145,7 +145,7 @@ export default function ClassiaChat() {
   }
 
   return (
-    <div className="h-screen bg-background text-foreground flex overflow-hidden">
+    <div className="h-[100%] bg-background text-foreground flex overflow-hidden">
       {/* Background Effects */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
@@ -153,7 +153,7 @@ export default function ClassiaChat() {
       </div>
 
       {/* Chat Sidebar */}
-      <div className="w-1/2 border-r border-border/50 flex flex-col h-full">
+      <div className="w-1/2 border-r border-border/50 flex flex-col min-h-screen overflow-y-hidden">
         {/* Chat Header */}
         <div className="p-6 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -168,8 +168,8 @@ export default function ClassiaChat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
-          {messages.length === 0 && (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0 relative">
+          {messages.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
                 <Play className="w-8 h-8 text-primary" />
@@ -201,8 +201,9 @@ export default function ClassiaChat() {
             </div>
           ))}
 
+          {/* Loading State Overlay */}
           {isLoading && (
-            <div className="flex justify-start">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
               <div className="glassmorphism rounded-2xl p-4 max-w-[80%]">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
@@ -216,12 +217,12 @@ export default function ClassiaChat() {
 
         {/* Input */}
         <div className="p-6 border-t border-border/50 w-full flex flex-shrink-0">
-          <form onSubmit={handleSubmit} className="flex gap-3 w-full">
+          <form onSubmit={handleSubmit} className="flex gap-3 w-full justify-between">
             <GlowingInput
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Describe what you want to learn..."
-              className="!flex-1 !w-full !min-w-0 !max-w-none"
+              className="!flex min-w-full !max-w-none"
               disabled={isLoading}
             />
             <EtherealButton type="submit" disabled={isLoading || !input.trim()}>
@@ -232,8 +233,8 @@ export default function ClassiaChat() {
       </div>
 
       {/* Content Area */}
-      <div className="w-1/2 flex flex-col h-full">
-        {messages.length > 0 && hasGeneratedCode && (
+      <div className="w-1/2 flex flex-col h-full justify-center align-center">
+        {messages.length > 0 && (hasVideo || hasGeneratedCode) && (
           <div className="border-b border-border/50 p-4 flex-shrink-0">
             <div className="flex gap-2">
               <button
@@ -261,9 +262,9 @@ export default function ClassiaChat() {
             </div>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="flex items-center justify-center p-12 min-h-full">
-            {isLoading ? (
+        <div className="flex overflow-y-auto min-h-screen justify-center align-center p-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center min-h-full">
               <div className="text-center space-y-6">
                 <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
                   <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -283,7 +284,9 @@ export default function ClassiaChat() {
                   </div>
                 </div>
               </div>
-            ) : isCompilingVideo ? (
+            </div>
+          ) : isCompilingVideo ? (
+            <div className="flex items-center justify-center min-h-full">
               <div className="text-center space-y-6">
                 <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
                   <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -303,8 +306,10 @@ export default function ClassiaChat() {
                   </div>
                 </div>
               </div>
-            ) : hasVideo ? (
-              activeTab === "video" ? (
+            </div>
+          ) : hasVideo ? (
+            activeTab === "video" ? (
+              <div className="flex items-center justify-center min-h-full">
                 <div className="text-center space-y-6">
                   <div className="text-center mb-6">
                     <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
@@ -315,44 +320,44 @@ export default function ClassiaChat() {
                   </div>
                   <VideoPlayer src={videoUrl} title="Educational Animation" className="w-full max-w-2xl" />
                 </div>
-              ) : (
-                <div className="w-full h-full flex flex-col">
-                  <div className="flex-1 overflow-auto">
-                    <div className="glassmorphism m-4 rounded-lg">
-                      <div className="p-4 border-b border-border/50">
-                        <div className="flex items-center gap-2">
-                          <Code className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium">Generated Python Code</span>
-                          <span className="text-xs text-muted-foreground ml-auto">manim</span>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        {isLoadingCode ? (
-                          <div className="flex items-center justify-center py-8">
-                            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                            <span className="ml-2 text-sm text-muted-foreground">Loading code...</span>
-                          </div>
-                        ) : currentCode ? (
-                          <pre className="text-xs text-foreground/90 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
-                            {currentCode}
-                          </pre>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-12 h-12 glassmorphism rounded-full flex items-center justify-center mx-auto mb-3">
-                              <Code className="w-6 h-6 text-muted-foreground" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">No code available</p>
-                            <button onClick={fetchCurrentCode} className="text-xs text-primary hover:underline mt-2">
-                              Try refreshing
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+              </div>
+            ) : (
+              <div className="glassmorphism rounded-lg h-full flex flex-col">
+                <div className="p-4 border-b border-border/50 flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Code className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Generated Python Code</span>
+                    <span className="text-xs text-muted-foreground ml-auto">manim</span>
                   </div>
                 </div>
-              )
-            ) : messages.length > 0 ? (
+                <div className="p-4 flex-1 overflow-auto min-h-0">
+                  {isLoadingCode ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading code...</span>
+                    </div>
+                  ) : currentCode ? (
+                    <pre className="text-xs text-foreground/90 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed h-full overflow-y-auto">
+                      {currentCode}
+                    </pre>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="w-12 h-12 glassmorphism rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Code className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">No code available</p>
+                        <button onClick={fetchCurrentCode} className="text-xs text-primary hover:underline mt-2">
+                          Try refreshing
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          ) : messages.length > 0 ? (
+            <div className="flex items-center justify-center min-h-full">
               <div className="text-center space-y-6">
                 <GlassCard className="p-8 max-w-md">
                   <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
@@ -365,7 +370,9 @@ export default function ClassiaChat() {
                   </div>
                 </GlassCard>
               </div>
-            ) : (
+            </div>
+          ) : (
+            <div className="flex items-center justify-center min-h-full">
               <div className="text-center space-y-6 max-w-md">
                 <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
                   <Sparkles className="w-12 h-12 text-primary" />
@@ -378,8 +385,8 @@ export default function ClassiaChat() {
                   </p>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
