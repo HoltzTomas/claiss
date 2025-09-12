@@ -9,17 +9,20 @@ import { GlassCard } from "@/components/glass-card"
 import { EtherealButton } from "@/components/ethereal-button"
 import { GlowingInput } from "@/components/glowing-input"
 import { VideoPlayer } from "@/components/video-player"
-import { Send, Sparkles, Play, Clock, BookOpen, Film, Video, Code } from "lucide-react"
+import { Send, Sparkles, Play, Clock, BookOpen, Film, Video, Code, FileText } from "lucide-react"
 
 export default function ClassiaChat() {
   const [input, setInput] = useState("")
   const [hasVideo, setHasVideo] = useState(false)
   const [videoUrl, setVideoUrl] = useState("")
   const [isCompilingVideo, setIsCompilingVideo] = useState(false)
-  const [activeTab, setActiveTab] = useState<"video" | "code">("video")
+  const [activeTab, setActiveTab] = useState<"video" | "code" | "script">("video")
   const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
   const [currentCode, setCurrentCode] = useState<string | null>(null)
   const [isLoadingCode, setIsLoadingCode] = useState(false)
+  const [currentScript, setCurrentScript] = useState<string | null>(null)
+  const [scriptTitle, setScriptTitle] = useState<string | null>(null)
+  const [hasGeneratedScript, setHasGeneratedScript] = useState(false)
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -93,7 +96,7 @@ export default function ClassiaChat() {
     checkForVideo()
   }, [])
 
-  // Fetch current code when switching to code tab
+  // Fetch current code and script when switching tabs
   const fetchCurrentCode = async () => {
     if (isLoadingCode) return
 
@@ -109,9 +112,23 @@ export default function ClassiaChat() {
         setCurrentCode(null)
         console.log("[FRONTEND] No current code found")
       }
+
+      // Also handle script data from the same API
+      if (data.success && data.hasScript) {
+        setCurrentScript(data.script)
+        setScriptTitle(data.title)
+        setHasGeneratedScript(true)
+        console.log("[FRONTEND] Current script loaded successfully")
+      } else {
+        setCurrentScript(null)
+        setScriptTitle(null)
+        setHasGeneratedScript(false)
+        console.log("[FRONTEND] No current script found")
+      }
     } catch (error) {
-      console.error("[FRONTEND] Error fetching current code:", error)
+      console.error("[FRONTEND] Error fetching current code/script:", error)
       setCurrentCode(null)
+      setCurrentScript(null)
     } finally {
       setIsLoadingCode(false)
     }
@@ -220,7 +237,7 @@ export default function ClassiaChat() {
 
       {/* Content Area */}
       <div className="w-1/2 flex flex-col h-full justify-center align-center">
-        {messages.length > 0 && (hasVideo || hasGeneratedCode) && (
+        {messages.length > 0 && (hasVideo || hasGeneratedCode || hasGeneratedScript) && (
           <div className="border-b border-border/50 p-4 flex-shrink-0">
             <div className="flex gap-2">
               <button
@@ -244,6 +261,17 @@ export default function ClassiaChat() {
               >
                 <Code className="w-4 h-4" />
                 Code
+              </button>
+              <button
+                onClick={() => setActiveTab("script")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "script"
+                    ? "glassmorphism text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Script
               </button>
             </div>
           </div>
@@ -307,7 +335,7 @@ export default function ClassiaChat() {
                   <VideoPlayer src={videoUrl} title="Educational Animation" className="w-full max-w-2xl" />
                 </div>
               </div>
-            ) : (
+            ) : activeTab === "code" ? (
               <div className="glassmorphism rounded-lg h-full flex flex-col">
                 <div className="p-4 border-b border-border/50 flex-shrink-0">
                   <div className="flex items-center gap-2">
@@ -333,6 +361,40 @@ export default function ClassiaChat() {
                           <Code className="w-6 h-6 text-muted-foreground" />
                         </div>
                         <p className="text-sm text-muted-foreground">No code available</p>
+                        <button onClick={fetchCurrentCode} className="text-xs text-primary hover:underline mt-2">
+                          Try refreshing
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="glassmorphism rounded-lg h-full flex flex-col">
+                <div className="p-4 border-b border-border/50 flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Educational Script</span>
+                    {scriptTitle && <span className="text-xs text-muted-foreground ml-auto">{scriptTitle}</span>}
+                  </div>
+                </div>
+                <div className="p-4 flex-1 overflow-auto min-h-0">
+                  {isLoadingCode ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading script...</span>
+                    </div>
+                  ) : currentScript ? (
+                    <div className="text-sm text-foreground/90 leading-relaxed h-full overflow-y-auto whitespace-pre-wrap">
+                      {currentScript}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="w-12 h-12 glassmorphism rounded-full flex items-center justify-center mx-auto mb-3">
+                          <FileText className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">No script available</p>
                         <button onClick={fetchCurrentCode} className="text-xs text-primary hover:underline mt-2">
                           Try refreshing
                         </button>

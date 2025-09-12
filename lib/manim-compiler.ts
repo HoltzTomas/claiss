@@ -57,7 +57,7 @@ export async function compileManimCode(
     const output = execSync(command, {
       cwd: tempDir,
       encoding: 'utf8',
-      timeout: 60000, // 60 second timeout
+      timeout: 120000, // 120 second timeout (2 minutes)
     });
     
     console.log(`[MANIM-COMPILER] ✅ Compilation completed`);

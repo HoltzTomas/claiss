@@ -1,0 +1,13 @@
+# Bubble Sort Explained
+
+Welcome to this visual demonstration of Bubble Sort! Here we have an unsorted array of numbers. Our goal is to sort them in ascending order.
+
+Bubble Sort works by repeatedly stepping through the list, comparing each pair of adjacent items, and swapping them if they are in the wrong order. The passes through the list are repeated until the list is sorted.
+
+Let's begin the first pass. We compare the first two elements. Since 5 is greater than 2, we swap them. Next, we compare 5 and 8. They're in the right order, so we move on. Then, 8 and 1 are compared, and a swap is needed. Finally, we compare 8 and 9, which are in order. Notice how after the first pass, the largest element, 9, has "bubbled" its way to the correct position at the end. We'll mark it as sorted.
+
+Now for the second pass. We repeat the process, but we only need to go up to the last sorted element. We compare 2 and 5, no swap. Then 5 and 1, which need swapping. And finally, 5 and 8, no swap. Now 8 is in its correct place, so we mark it as sorted.
+
+The algorithm continues this process, with each pass guaranteeing that the next largest element finds its correct position. The comparisons become fewer and fewer with each pass.
+
+After the final pass, you can see that all the elements are in their correct sorted positions. And that's Bubble Sort! A simple and intuitive way to sort a list.

@@ -8,6 +8,7 @@ import {
 } from 'ai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { writeCodeTool, readCodeTool } from '@/lib/code-tools';
+import { writeScriptTool, readScriptTool } from '@/lib/script-tools';
 
 export const maxDuration = 30;
 
@@ -43,11 +44,13 @@ export async function POST(req: Request) {
     const context7Tools = await mcpClient.tools();
     console.log(`[VIDEO-GENERATOR] ✅ Retrieved ${Object.keys(context7Tools || {}).length} tools from Context7`);
     
-    // Combine Context7 tools with our code management tools
+    // Combine Context7 tools with our code and script management tools
     const tools = {
       ...context7Tools,
       writeCode: writeCodeTool,
       readCode: readCodeTool,
+      writeScript: writeScriptTool,
+      readScript: readScriptTool,
     };
     console.log(`[VIDEO-GENERATOR] ✅ Total tools available: ${Object.keys(tools).length}`);
 
@@ -56,21 +59,26 @@ export async function POST(req: Request) {
       model: google('gemini-2.5-pro'),
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
-IMPORTANT: You have access to code management tools. NEVER include Python code in your text responses. Always use the writeCode tool.
+IMPORTANT: You have access to code and script management tools. NEVER include Python code in your text responses. Always use the writeCode tool for code and writeScript tool for educational narration.
 
 WORKFLOW FOR ANY EDUCATIONAL REQUEST:
-1. If this is a modification request, FIRST use readCode tool to get existing code context
+1. If this is a modification request, FIRST use readCode and readScript tools to get existing context
 2. Extract the main topic from the user's question (e.g., "bubble sort", "physics simulation", "calculus", "data structures")
 3. ALWAYS use Context7 tools to search the /manimcommunity/manim library with the pattern: "{extracted_topic} examples animations"
 4. Generate clean, working Python code using Manim for educational animations
 5. Use writeCode tool to save the code (this will automatically compile the video)
-6. Provide brief explanation in text response WITHOUT including any code
+6. Generate an educational script that explains what's happening in the animation
+7. Use writeScript tool to save the educational narration
+8. Provide brief explanation in text response WITHOUT including any code or script content
 
 CRITICAL CODE FORMAT REQUIREMENTS:
 - Use proper Manim class structure: class [Topic]Animation(Scene)
 - Include necessary imports: from manim import *
 - Ensure code is complete and executable
-- Use modern Manim syntax (avoid deprecated methods like .set_fill())
+- Use modern Manim syntax and avoid deprecated animations:
+  * Use Create() instead of GrowArrow() for arrow animations
+  * Use Create() for all drawing animations
+  * Avoid deprecated methods like .set_fill() with positional arguments
 - Add brief comments only for complex parts
 - Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
 
@@ -117,12 +125,24 @@ CONTEXT AWARENESS FOR MODIFICATIONS:
 - Maintain the same class name and overall structure unless specifically asked to change
 - Keep the section-based organization from the template
 
+EDUCATIONAL SCRIPT REQUIREMENTS:
+- Write in clear, teacherly language that explains the concepts being animated
+- Structure as: Introduction → Main concepts → Key steps → Conclusion
+- Explain WHY things happen, not just WHAT happens
+- Use timing cues like "First, we see...", "Next...", "Notice how..."
+- Make it suitable for voice narration (conversational, not bullet points)
+- Length: 1-3 paragraphs depending on complexity
+
+SCRIPT EXAMPLE FORMAT:
+"Welcome to this demonstration of bubble sort! We'll watch as this sorting algorithm compares adjacent elements and swaps them when needed. First, we see our unsorted array with numbers in random order. The algorithm starts by comparing the first two elements - notice how it swaps them because 5 is greater than 3. This process continues, with each pass moving the largest unsorted element to its correct position, like bubbles rising to the surface. By the end, we'll have a perfectly sorted array, demonstrating why this elegant algorithm got its bubbly name!"
+
 RESPONSE FORMAT:
-1. Use readCode tool if this is a modification (not for brand new requests)
+1. Use readCode and readScript tools if this is a modification (not for brand new requests)
 2. Use Context7 tools to get relevant documentation/examples
 3. Use writeCode tool with complete Python code following the scene template
-4. Provide brief explanation (1-2 sentences) in text - NO CODE IN TEXT
-5. The writeCode tool will automatically handle video compilation
+4. Use writeScript tool with educational narration explaining the animation
+5. Provide brief explanation (1-2 sentences) in text - NO CODE OR SCRIPT CONTENT IN TEXT
+6. The writeCode tool will automatically handle video compilation
 
 EXAMPLES OF TOPIC EXTRACTION:
 - "Explain how bubble sort works" → Search: "bubble sort examples animations"
@@ -212,10 +232,12 @@ NEVER include Python code in your text responses - only use the writeCode tool f
     
     console.log('[VIDEO-GENERATOR] 🔄 Falling back to regular streaming without MCP tools...');
     
-    // Fallback to regular streaming without MCP tools but with code tools
+    // Fallback to regular streaming without MCP tools but with code and script tools
     const fallbackTools = {
       writeCode: writeCodeTool,
       readCode: readCodeTool,
+      writeScript: writeScriptTool,
+      readScript: readScriptTool,
     };
     
     const result = streamText({
@@ -224,20 +246,25 @@ NEVER include Python code in your text responses - only use the writeCode tool f
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.
 
-IMPORTANT: You have access to code management tools. NEVER include Python code in your text responses. Always use the writeCode tool.
+IMPORTANT: You have access to code and script management tools. NEVER include Python code in your text responses. Always use the writeCode tool for code and writeScript tool for educational narration.
 
 WORKFLOW FOR ANY EDUCATIONAL REQUEST:
-1. If this is a modification request, FIRST use readCode tool to get existing code context
+1. If this is a modification request, FIRST use readCode and readScript tools to get existing context
 2. Extract the educational topic from the user's question
 3. Generate clean, working Python code using Manim for educational animations
 4. Use writeCode tool to save the code (this will automatically compile the video)
-5. Provide brief explanation in text response WITHOUT including any code
+5. Generate an educational script that explains what's happening in the animation
+6. Use writeScript tool to save the educational narration
+7. Provide brief explanation in text response WITHOUT including any code or script content
 
 CRITICAL CODE FORMAT REQUIREMENTS:
 - Use proper Manim class structure: class [Topic]Animation(Scene)
 - Include necessary imports: from manim import *
 - Ensure code is complete and executable
-- Use modern Manim syntax (avoid deprecated methods like .set_fill())
+- Use modern Manim syntax and avoid deprecated animations:
+  * Use Create() instead of GrowArrow() for arrow animations
+  * Use Create() for all drawing animations
+  * Avoid deprecated methods like .set_fill() with positional arguments
 - Add brief comments only for complex parts
 - Make class names descriptive (e.g., BubbleSortAnimation, LinearRegressionAnimation)
 
@@ -278,11 +305,20 @@ CONTEXT AWARENESS FOR MODIFICATIONS:
 - Preserve good parts of existing code while making requested modifications
 - Keep the section-based organization from the template
 
+EDUCATIONAL SCRIPT REQUIREMENTS:
+- Write in clear, teacherly language that explains the concepts being animated
+- Structure as: Introduction → Main concepts → Key steps → Conclusion
+- Explain WHY things happen, not just WHAT happens
+- Use timing cues like "First, we see...", "Next...", "Notice how..."
+- Make it suitable for voice narration (conversational, not bullet points)
+- Length: 1-3 paragraphs depending on complexity
+
 RESPONSE FORMAT:
-1. Use readCode tool if this is a modification (not for brand new requests)
+1. Use readCode and readScript tools if this is a modification (not for brand new requests)
 2. Use writeCode tool with complete Python code following the scene template
-3. Provide brief explanation (1-2 sentences) in text - NO CODE IN TEXT
-4. The writeCode tool will automatically handle video compilation
+3. Use writeScript tool with educational narration explaining the animation
+4. Provide brief explanation (1-2 sentences) in text - NO CODE OR SCRIPT CONTENT IN TEXT
+5. The writeCode tool will automatically handle video compilation
 
 ALWAYS follow the scene organization template for proper content management.
 NEVER include Python code in your text responses - only use the writeCode tool for code.`,
