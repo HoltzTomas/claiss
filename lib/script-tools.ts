@@ -15,7 +15,7 @@ export const writeScriptTool = tool({
   }),
   execute: async ({ script, title }) => {
     try {
-      const tempDir = path.join(process.cwd(), 'temp');
+      const tempDir = '/tmp';
       const scriptPath = path.join(tempDir, 'current-script.txt');
       
       console.log('[SCRIPT-TOOL] Writing script to file...');
@@ -63,7 +63,7 @@ export const readScriptTool = tool({
   inputSchema: z.object({}),
   execute: async () => {
     try {
-      const scriptPath = path.join(process.cwd(), 'temp', 'current-script.txt');
+      const scriptPath = path.join('/tmp', 'current-script.txt');
       
       if (existsSync(scriptPath)) {
         const existingScript = readFileSync(scriptPath, 'utf8');

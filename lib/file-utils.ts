@@ -9,11 +9,11 @@ export function getLatestVideo(): string {
 }
 
 /**
- * Read the current script content from temp/current-script.txt
+ * Read the current script content from /tmp/current-script.txt
  */
 export async function readCurrentScript(): Promise<string> {
   try {
-    const scriptPath = path.join(process.cwd(), 'temp', 'current-script.txt');
+    const scriptPath = path.join('/tmp', 'current-script.txt');
     const content = await fs.readFile(scriptPath, 'utf8');
     return content.trim();
   } catch (error) {

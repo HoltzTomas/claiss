@@ -16,7 +16,7 @@ export const writeCodeTool = tool({
   }),
   execute: async ({ code, description }) => {
     try {
-      const tempDir = path.join(process.cwd(), 'temp');
+      const tempDir = '/tmp';
       const codePath = path.join(tempDir, 'current-code.py');
       
       console.log('[CODE-TOOL] Writing code to file...');
@@ -107,7 +107,7 @@ export const readCodeTool = tool({
   inputSchema: z.object({}),
   execute: async () => {
     try {
-      const codePath = path.join(process.cwd(), 'temp', 'current-code.py');
+      const codePath = path.join('/tmp', 'current-code.py');
       
       if (existsSync(codePath)) {
         const existingCode = readFileSync(codePath, 'utf8');

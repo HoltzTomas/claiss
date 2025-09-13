@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     message: 'Generate Voiced Video API',
     description: 'POST to this endpoint to generate a video with TTS narration',
     parameters: {
-      scriptText: 'Optional - custom script text (if not provided, reads from temp/current-script.txt)',
+      scriptText: 'Optional - custom script text (if not provided, reads from /tmp/current-script.txt)',
       voice: 'Optional - ElevenLabs voice ID to use (default: Rachel - 21m00Tcm4TlvDq8ikWAM)'
     },
     availableVoices: [

@@ -126,7 +126,7 @@ export async function mergeVideoWithAudio(
   return new Promise(async (resolve, reject) => {
     try {
       // Create temporary audio file
-      const tempAudioPath = path.join(process.cwd(), 'temp', `audio-${Date.now()}.mp3`);
+      const tempAudioPath = path.join('/tmp', `audio-${Date.now()}.mp3`);
       await fs.writeFile(tempAudioPath, new Uint8Array(audioBuffer));
 
       console.log('[VIDEO-MERGER] Starting video merge process...');

@@ -3,7 +3,7 @@ import path from 'path';
 
 // Helper function to read script file
 function readScriptFile() {
-  const scriptPath = path.join(process.cwd(), 'temp', 'current-script.txt');
+  const scriptPath = path.join('/tmp', 'current-script.txt');
   
   if (existsSync(scriptPath)) {
     const scriptContent = readFileSync(scriptPath, 'utf8');
@@ -25,7 +25,7 @@ function readScriptFile() {
 
 export async function GET() {
   try {
-    const codePath = path.join(process.cwd(), 'temp', 'current-code.py');
+    const codePath = path.join('/tmp', 'current-code.py');
     
     if (existsSync(codePath)) {
       const code = readFileSync(codePath, 'utf8');

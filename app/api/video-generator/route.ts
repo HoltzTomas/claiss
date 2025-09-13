@@ -10,7 +10,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { writeCodeTool, readCodeTool } from '@/lib/code-tools';
 import { writeScriptTool, readScriptTool } from '@/lib/script-tools';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();

@@ -27,6 +27,10 @@ const getToolInfo = (toolName: string) => {
       return { icon: FileText, name: 'Writing Script', color: 'text-green-400' }
     case 'readScript':
       return { icon: Search, name: 'Reading Script', color: 'text-emerald-400' }
+    case 'get-library-docs':
+      return { icon: Search, name: 'Thinking', color: 'text-purple-400' }
+    case 'resolve-library-id':
+      return { icon: Code, name: 'Researching', color: 'text-indigo-400' }
     default:
       return { icon: Cog, name: 'Processing', color: 'text-gray-400' }
   }
@@ -348,11 +352,6 @@ export default function ClassiaChat() {
                         partState = staticPart.state || 'call'
                         partInput = staticPart.input
                         partErrorText = staticPart.errorText
-                      }
-                      
-                      // Skip Context7 tools - they're internal and users don't need to see them
-                      if (isContext7Tool(toolName)) {
-                        return null
                       }
                       
                       const toolInfo = getToolInfo(toolName)

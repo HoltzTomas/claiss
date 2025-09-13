@@ -1,7 +1,11 @@
-# Bubble Sort Algorithm Explained
+# Understanding Bubble Sort Algorithm
 
-Welcome to an animated explanation of the Bubble Sort algorithm! Bubble Sort is a simple yet fundamental sorting technique that helps us understand how sorting works behind the scenes.
+Welcome to this visualization of the Bubble Sort algorithm! Bubble Sort is one of the simplest sorting algorithms that repeatedly steps through a list, compares adjacent elements, and swaps them if they're in the wrong order.
 
-In this animation, we start with an unsorted array of numbers: 5, 2, 8, 12, 1, and 6. Watch carefully as the algorithm compares adjacent elements and swaps them if they are in the wrong order. Notice how in each pass, the largest unsorted element "bubbles up" to its correct position at the end of the array.
+Let's start with our unsorted array of numbers: 6, 3, 8, 2, and 5. Watch as we compare adjacent pairs of numbers. When we find a pair where the left number is larger than the right number, we swap them. This process is similar to how bubbles rise to the surface in water, hence the name "Bubble Sort."
 
-The magic of Bubble Sort happens through repeated comparisons. In each iteration, it compares neighboring elements and swaps them if they are out of order. Think of it like sorting a stack of cards by repeatedly comparing and rearranging them. By the end of the process, our array transforms from a random collection of numbers into a perfectly sorted sequence, demonstrating how even a simple algorithm can bring order to chaos!
+Notice how the larger numbers gradually "bubble up" to their correct positions on the right side of the array. The yellow highlighting shows which pair of numbers we're currently comparing. When a swap is needed, watch how the numbers smoothly exchange positions through a series of movements.
+
+After each complete pass through the array, we guarantee that at least one more number has reached its final position. That's why we need fewer comparisons in each subsequent pass. When the numbers turn green at the end, it indicates that our array is fully sorted in ascending order: 2, 3, 5, 6, 8.
+
+While Bubble Sort isn't the most efficient sorting algorithm for large datasets, its simplicity makes it an excellent teaching tool for understanding how sorting algorithms work. The visual nature of the swapping process helps us see exactly how the algorithm makes decisions and moves elements to their correct positions.
