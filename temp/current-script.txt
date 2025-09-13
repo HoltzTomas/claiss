@@ -1,13 +1,11 @@
-# Bubble Sort Explained
+# Recursive Functions
 
-Welcome to this visual demonstration of Bubble Sort! Here we have an unsorted array of numbers. Our goal is to sort them in ascending order.
+Welcome! In this video, we'll explore recursive functions—a powerful programming concept where a function calls itself to break down a problem into smaller, more manageable pieces.
 
-Bubble Sort works by repeatedly stepping through the list, comparing each pair of adjacent items, and swapping them if they are in the wrong order. The passes through the list are repeated until the list is sorted.
+We'll use a classic example: the factorial function. The factorial of a number 'n' is the product of all positive integers up to 'n'. A recursive function defines this in terms of itself. As you see, factorial of 'n' is defined as 'n' times factorial of 'n-1'. To prevent this from going on forever, we need a base case: factorial of 0 is 1.
 
-Let's begin the first pass. We compare the first two elements. Since 5 is greater than 2, we swap them. Next, we compare 5 and 8. They're in the right order, so we move on. Then, 8 and 1 are compared, and a swap is needed. Finally, we compare 8 and 9, which are in order. Notice how after the first pass, the largest element, 9, has "bubbled" its way to the correct position at the end. We'll mark it as sorted.
+Let's watch this in action by calculating the factorial of 4. First, the function `factorial(4)` is called. It can't answer directly, so it calls `factorial(3)`. This continues all the way down, with each function calling the next, until we reach our base case, `factorial(0)`.
 
-Now for the second pass. We repeat the process, but we only need to go up to the last sorted element. We compare 2 and 5, no swap. Then 5 and 1, which need swapping. And finally, 5 and 8, no swap. Now 8 is in its correct place, so we mark it as sorted.
+Once the base case is hit, it returns the value 1. Now, the functions can solve themselves in reverse. `factorial(1)` receives the value 1, calculates 1 times 1, and returns 1. `factorial(2)` receives this, calculates 2 times 1, and returns 2. This process, known as unwinding, continues up the call stack until the original call, `factorial(4)`, gets the value 6 from below, calculates 4 times 6, and returns our final answer: 24.
 
-The algorithm continues this process, with each pass guaranteeing that the next largest element finds its correct position. The comparisons become fewer and fewer with each pass.
-
-After the final pass, you can see that all the elements are in their correct sorted positions. And that's Bubble Sort! A simple and intuitive way to sort a list.
+To summarize, every recursive function has two essential components. First, the base case, which is a simple condition that stops the recursion. Second, the recursive step, where the function calls itself with an input that moves it closer to the base case. By combining these two parts, recursion can solve complex problems in a surprisingly elegant way.

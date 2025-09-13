@@ -1,78 +1,100 @@
-from manim import *
 
-class BubbleSortAnimation(Scene):
+from manim import *
+import math
+
+class RecursiveFunctionAnimation(Scene):
     def construct(self):
         # Section 1: Introduction
         self.next_section("Introduction")
-        title = Text("Bubble Sort", font_size=72)
-        self.play(Write(title))
+        title = Text("Recursive Functions")
+        subtitle = Text("Functions that call themselves to solve a problem", font_size=36).next_to(title, DOWN)
+        self.play(FadeIn(title), FadeIn(subtitle))
+        self.wait(2)
+        self.play(FadeOut(title), FadeOut(subtitle))
         self.wait(1)
 
-        # Create the initial array of numbers and boxes
-        numbers = [5, 2, 8, 1, 9]
-        num_mobjects = VGroup()
-        box_mobjects = VGroup()
+        # Section 2: Factorial Example
+        self.next_section("Factorial Example")
 
-        for i, num in enumerate(numbers):
-            number_obj = Integer(num).scale(1.5)
-            box = SurroundingRectangle(number_obj, buff=0.4, color=BLUE)
-            group = VGroup(box, number_obj)
-            num_mobjects.add(group)
+        # Display the recursive definition
+        definition = MathTex(r"\text{factorial}(n) = n \times \text{factorial}(n-1)").to_edge(UP)
+        base_case = MathTex(r"\text{factorial}(0) = 1").next_to(definition, DOWN)
+        self.play(Write(definition), Write(base_case))
+        self.wait(2)
 
-        num_mobjects.arrange(RIGHT, buff=0.5)
-        self.play(ReplacementTransform(title, num_mobjects))
-        self.wait(1)
+        # Remove the definition to make space for the call stack visualization
+        self.play(FadeOut(definition), FadeOut(base_case))
+        self.wait(0.5)
 
-        # Section 2: Sorting Process
-        n = len(numbers)
-        for i in range(n):
-            self.next_section(f"Pass {i+1}")
-            for j in range(0, n - i - 1):
-                # Highlight the elements being compared
-                box1 = num_mobjects[j][0]
-                box2 = num_mobjects[j + 1][0]
-                self.play(
-                    box1.animate.set_color(YELLOW),
-                    box2.animate.set_color(YELLOW)
-                )
-                self.wait(0.5)
+        # Visualize the call stack
+        n_val = 4
+        
+        # Create all call frames first
+        all_calls = []
+        for i in range(n_val, -1, -1):
+            call_text = f"factorial({i})"
+            if i > 0:
+                call_text += f" = {i} * factorial({i-1})"
+            else:
+                call_text += " = 1 (Base Case)"
 
-                if numbers[j] > numbers[j + 1]:
-                    # Swap the numbers
-                    numbers[j], numbers[j + 1] = numbers[j + 1], numbers[j]
-                    
-                    # Animate the swap
-                    num1_group = num_mobjects[j]
-                    num2_group = num_mobjects[j + 1]
-                    
-                    self.play(
-                        num1_group.animate.move_to(num2_group.get_center()),
-                        num2_group.animate.move_to(num1_group.get_center())
-                    )
-                    # Swap their positions in the VGroup
-                    num_mobjects[j], num_mobjects[j+1] = num_mobjects[j+1], num_mobjects[j]
-                    self.wait(0.5)
+            frame = Rectangle(width=6.5, height=1.0, color=BLUE)
+            text = Text(call_text, font_size=32).move_to(frame.get_center())
+            call_group = VGroup(frame, text)
+            all_calls.append(call_group)
 
-                # Unhighlight the elements
-                self.play(
-                    box1.animate.set_color(BLUE),
-                    box2.animate.set_color(BLUE)
-                )
-                self.wait(0.2)
-            
-            # Mark the sorted element
-            sorted_box = num_mobjects[n - i - 1][0]
-            self.play(sorted_box.animate.set_color(GREEN))
+        # Arrange them in a VGroup and position it centrally
+        call_stack = VGroup(*all_calls).arrange(DOWN, buff=0.1)
+        call_stack.center() # Position the entire stack in the center
+
+        # Animate their creation one by one
+        for call_group in all_calls:
+            self.play(Create(call_group), run_time=0.7)
             self.wait(0.5)
+
+        self.wait(1)
+        self.play(Indicate(call_stack[-1], color=GREEN)) # Highlight base case
+        self.wait(1)
+
+        # Animate the returns "unwinding"
+        return_val = 1
+        for i in range(1, n_val + 1):
+            prev_group = call_stack[-(i + 1)]
+            current_group = call_stack[-i]
+            
+            return_val_text = Text(str(return_val), font_size=32, color=YELLOW).move_to(current_group[1].get_center())
+
+            self.play(
+                FadeOut(current_group),
+                return_val_text.animate.move_to(prev_group[1].get_center() + LEFT * 1.5)
+            )
+            self.wait(0.2)
+            
+            return_val = i * return_val
+            new_text_str = f"factorial({i}) = {return_val}"
+            new_text = Text(new_text_str, font_size=32).move_to(prev_group.get_center())
+
+            self.play(FadeOut(return_val_text), Transform(prev_group[1], new_text))
+            self.wait(1)
+
+        final_result_box = SurroundingRectangle(call_stack[0], color=GREEN, buff=0.2)
+        self.play(Create(final_result_box))
+        self.wait(2)
 
         # Section 3: Conclusion
         self.next_section("Conclusion")
-        sorted_text = Text("Array is Sorted!", font_size=48).next_to(num_mobjects, DOWN, buff=1)
-        self.play(Write(sorted_text))
-        self.wait(2)
+        self.play(FadeOut(*self.mobjects))
         
-        self.play(
-            FadeOut(num_mobjects),
-            FadeOut(sorted_text)
-        )
+        conclusion_title = Text("Key Components of Recursion", font_size=48).to_edge(UP)
+        base_case_text = Text("1. Base Case:", color=GREEN).next_to(conclusion_title, DOWN, buff=1).align_to(conclusion_title, LEFT)
+        base_case_desc = Text("A condition to stop the recursion.", font_size=32).next_to(base_case_text, RIGHT, buff=0.2)
+        
+        recursive_step_text = Text("2. Recursive Step:", color=BLUE).next_to(base_case_text, DOWN, buff=0.5).align_to(base_case_text, LEFT)
+        recursive_step_desc = Text("The function calls itself, moving closer to the base case.", font_size=32).next_to(recursive_step_text, RIGHT, buff=0.2)
+        
+        self.play(Write(conclusion_title))
+        self.play(FadeIn(base_case_text, shift=RIGHT), FadeIn(base_case_desc, shift=RIGHT))
         self.wait(1)
+        self.play(FadeIn(recursive_step_text, shift=RIGHT), FadeIn(recursive_step_desc, shift=RIGHT))
+        self.wait(3)
+        self.play(FadeOut(*self.mobjects))

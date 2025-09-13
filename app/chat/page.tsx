@@ -42,12 +42,15 @@ export default function ClassiaChat() {
   // Check for latest video
   const checkForVideo = async () => {
     try {
-      const testUrl = `https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_6BP1I5ITTawJUoFdn9HTWEVvfVF9/dsPkP2DIWyN9EQ-KTzErLw/public/videos/latest.mp4` // Cache busting
+      // Add cache busting with timestamp to force browser reload
+      const timestamp = Date.now()
+      const testUrl = `/videos/latest.mp4?t=${timestamp}`
       const response = await fetch(testUrl, { method: "HEAD" })
       if (response.ok) {
         setHasVideo(true)
         setVideoUrl(testUrl)
         setIsCompilingVideo(false)
+        console.log(`[FRONTEND] Video URL updated with cache busting: ${testUrl}`)
         return true
       } else if (response.status === 416) {
         // File exists but still being written (Range Not Satisfiable) - keep polling
@@ -165,9 +168,10 @@ export default function ClassiaChat() {
 
       if (response.ok) {
         setVoiceStatus("success")
-        // Refresh video after voice is added
+        // Refresh video, code, and script after voice is added
         setTimeout(() => {
           checkForVideo()
+          fetchCurrentCode() // Also refresh code and script content
           setVoiceStatus("idle")
         }, 2000)
       } else {
@@ -184,7 +188,7 @@ export default function ClassiaChat() {
   }
 
   return (
-    <div className="h-[100%] bg-background text-foreground flex overflow-hidden">
+    <div className="h-screen bg-background text-foreground flex overflow-hidden">
       {/* Background Effects */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
@@ -192,7 +196,7 @@ export default function ClassiaChat() {
       </div>
 
       {/* Chat Sidebar */}
-      <div className="w-1/2 border-r border-border/50 flex flex-col min-h-screen overflow-y-hidden">
+      <div className="w-1/2 border-r border-border/50 flex flex-col h-screen overflow-hidden">
         {/* Chat Header */}
         <div className="p-6 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -253,7 +257,7 @@ export default function ClassiaChat() {
         </div>
 
         {/* Input */}
-        <div className="p-6 border-t border-border/50 w-full flex flex-shrink-0">
+        <div className="p-6 border-t border-border/50 flex-shrink-0">
           <form onSubmit={handleSubmit} className="flex gap-3 w-full justify-between">
             <GlowingInput
               value={input}
@@ -270,7 +274,7 @@ export default function ClassiaChat() {
       </div>
 
       {/* Content Area */}
-      <div className="w-1/2 flex flex-col h-full justify-center align-center">
+      <div className="w-1/2 flex flex-col h-screen overflow-hidden">
         {messages.length > 0 && (hasVideo || hasGeneratedCode || hasGeneratedScript) && (
           <div className="border-b border-border/50 p-4 flex-shrink-0">
             <div className="flex gap-2">
@@ -310,7 +314,7 @@ export default function ClassiaChat() {
             </div>
           </div>
         )}
-        <div className="flex overflow-y-auto min-h-screen justify-center align-center p-4">
+        <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <div className="flex items-center justify-center min-h-full">
               <div className="text-center space-y-6">
@@ -366,7 +370,12 @@ export default function ClassiaChat() {
                     <h2 className="text-2xl font-semibold mb-2">Latest Animation</h2>
                     <p className="text-muted-foreground">Your generated educational video</p>
                   </div>
-                  <VideoPlayer src={videoUrl} title="Educational Animation" className="w-full max-w-2xl" />
+                  <VideoPlayer 
+                    key={videoUrl} 
+                    src={videoUrl} 
+                    title="Educational Animation" 
+                    className="w-full max-w-2xl" 
+                  />
 
                   <div className="flex justify-center mt-6">
                     <EtherealButton

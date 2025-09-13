@@ -10,6 +10,8 @@ export interface VoicedVideoResult {
   outputPath?: string;
   error?: string;
   audioPath?: string;
+  backupPath?: string;
+  latestUpdated?: boolean;
 }
 
 /**
@@ -233,6 +235,27 @@ export async function generateVoicedVideo(
     await mergeVideoWithAudio(videoPath, audioBuffer, outputPath);
     console.log('[PIPELINE] ✅ Voiced video created successfully');
 
+    // Step 6: Replace latest.mp4 with the voiced version
+    console.log('[PIPELINE] Replacing latest.mp4 with voiced version...');
+    try {
+      // Create backup of original latest.mp4
+      const backupPath = path.join(
+        process.cwd(),
+        'public',
+        'videos',
+        `latest-backup-${timestamp}.mp4`
+      );
+      await fs.copyFile(videoPath, backupPath);
+      console.log('[PIPELINE] ✅ Original video backed up to:', backupPath);
+
+      // Replace latest.mp4 with voiced version
+      await fs.copyFile(outputPath, videoPath);
+      console.log('[PIPELINE] ✅ latest.mp4 replaced with voiced version');
+    } catch (replaceError) {
+      console.error('[PIPELINE] ❌ Failed to replace latest.mp4:', replaceError);
+      // Continue execution even if replacement fails
+    }
+
     // Save audio file for reference
     const audioPath = path.join(
       process.cwd(),
@@ -253,7 +276,14 @@ export async function generateVoicedVideo(
     return {
       success: true,
       outputPath,
-      audioPath
+      audioPath,
+      backupPath: path.join(
+        process.cwd(),
+        'public',
+        'videos',
+        `latest-backup-${timestamp}.mp4`
+      ),
+      latestUpdated: true
     };
 
   } catch (error) {
