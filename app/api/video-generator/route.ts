@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { anthropic } from '@ai-sdk/anthropic';
 import { 
   streamText, 
   convertToModelMessages, 
@@ -56,7 +56,8 @@ export async function POST(req: Request) {
 
     console.log('[VIDEO-GENERATOR] Step 3: Starting AI text streaming...');
     const result = streamText({
-      model: google('gemini-2.5-pro'),
+      model: anthropic('claude-3-5-sonnet-20241022'),
+      // toolCallStreaming is enabled by default in AI SDK v5
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 IMPORTANT: You have access to code and script management tools. NEVER include Python code in your text responses. Always use the writeCode tool for code and writeScript tool for educational narration.
@@ -241,7 +242,8 @@ NEVER include Python code in your text responses - only use the writeCode tool f
     };
     
     const result = streamText({
-      model: google('gemini-2.5-flash'),
+      model: anthropic('claude-3-5-haiku-20241022'),
+      // toolCallStreaming is enabled by default in AI SDK v5
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.

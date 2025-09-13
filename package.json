@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.16",
     "@ai-sdk/elevenlabs": "latest",
     "@ai-sdk/google": "latest",
     "@ai-sdk/openai": "latest",

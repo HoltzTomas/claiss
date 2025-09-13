@@ -8,7 +8,45 @@ import { DefaultChatTransport } from "ai"
 import { EtherealButton } from "@/components/ethereal-button"
 import { GlowingInput } from "@/components/glowing-input"
 import { VideoPlayer } from "@/components/video-player"
-import { Send, Sparkles, Play, Clock, BookOpen, Film, Video, Code, FileText, Mic, Check, X } from "lucide-react"
+import { Send, Sparkles, Play, Clock, BookOpen, Film, Video, Code, FileText, Mic, Check, X, Cog, Wrench, Search, Zap, Users } from "lucide-react"
+
+// Helper function to get tool icon and display name
+const getToolInfo = (toolName: string) => {
+  switch (toolName) {
+    case 'writeCode':
+      return { icon: Code, name: 'Generating Code', color: 'text-blue-400' }
+    case 'readCode':
+      return { icon: Search, name: 'Reading Code', color: 'text-cyan-400' }
+    case 'writeScript':
+      return { icon: FileText, name: 'Writing Script', color: 'text-green-400' }
+    case 'readScript':
+      return { icon: Search, name: 'Reading Script', color: 'text-emerald-400' }
+    case 'get-library-docs':
+      return { icon: BookOpen, name: 'Fetching Documentation', color: 'text-purple-400' }
+    case 'resolve-library-id':
+      return { icon: Search, name: 'Resolving Library', color: 'text-orange-400' }
+    default:
+      return { icon: Cog, name: 'Processing', color: 'text-gray-400' }
+  }
+}
+
+// Helper function to get state message
+const getStateMessage = (state: string, toolName: string) => {
+  const toolInfo = getToolInfo(toolName)
+  
+  switch (state) {
+    case 'input-streaming':
+      return `Preparing ${toolInfo.name.toLowerCase()}...`
+    case 'input-available':
+      return `${toolInfo.name}...`
+    case 'output-available':
+      return `✅ ${toolInfo.name} completed`
+    case 'output-error':
+      return `❌ ${toolInfo.name} failed`
+    default:
+      return `${toolInfo.name}...`
+  }
+}
 
 export default function ClassiaChat() {
   const [input, setInput] = useState("")
@@ -236,28 +274,140 @@ export default function ClassiaChat() {
               <div
                 className={`max-w-[80%] ${message.role === "user" ? "bg-primary/20" : "glassmorphism"} rounded-2xl p-4`}
               >
-                <p className="text-sm">
+                <div className="text-sm space-y-2">
                   {message.parts.map((part, i) => {
+                    // Handle text parts
                     if (part.type === "text") {
-                      return <span key={i}>{part.text}</span>
+                      return <span key={i} className="block">{part.text}</span>
                     }
+                    
+                    // Handle step boundaries
+                    if (part.type === "step-start") {
+                      return i > 0 ? (
+                        <div key={i} className="flex items-center gap-2 py-2 text-muted-foreground">
+                          <div className="h-px bg-border flex-1"></div>
+                          <span className="text-xs">Step {i}</span>
+                          <div className="h-px bg-border flex-1"></div>
+                        </div>
+                      ) : null
+                    }
+                    
+                    // Handle tool calls with different states
+                    if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
+                      // Handle different tool part types
+                      let toolName: string
+                      let partState: string = 'call'
+                      let partInput: any = null
+                      let partErrorText: string | null = null
+                      
+                      if (part.type === 'dynamic-tool') {
+                        // Dynamic tool part
+                        const dynamicPart = part as any
+                        toolName = dynamicPart.toolName || 'unknown'
+                        partState = dynamicPart.state || 'call'
+                        partInput = dynamicPart.input
+                        partErrorText = dynamicPart.errorText
+                      } else {
+                        // Static tool part (tool-writeCode, tool-readCode, etc.)
+                        toolName = part.type.replace('tool-', '')
+                        const staticPart = part as any
+                        partState = staticPart.state || 'call'
+                        partInput = staticPart.input
+                        partErrorText = staticPart.errorText
+                      }
+                      
+                      const toolInfo = getToolInfo(toolName)
+                      const Icon = toolInfo.icon
+                      const stateMessage = getStateMessage(partState, toolName)
+                      
+                      return (
+                        <div key={i} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/30">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            partState === 'output-available' ? 'bg-green-500/20' :
+                            partState === 'output-error' ? 'bg-red-500/20' :
+                            'bg-primary/20'
+                          }`}>
+                            {partState === 'output-available' ? (
+                              <Check className="w-3 h-3 text-green-400" />
+                            ) : partState === 'output-error' ? (
+                              <X className="w-3 h-3 text-red-400" />
+                            ) : partState === 'input-streaming' || partState === 'input-available' ? (
+                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Icon className={`w-3 h-3 ${toolInfo.color}`} />
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground/90">
+                              {stateMessage}
+                            </p>
+                            
+                            {/* Show input details for some states */}
+                            {(partState === 'input-streaming' || partState === 'input-available') && partInput && (
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {typeof partInput === 'string' ? partInput : JSON.stringify(partInput).slice(0, 50) + '...'}
+                              </p>
+                            )}
+                            
+                            {/* Show error details */}
+                            {partState === 'output-error' && partErrorText && (
+                              <p className="text-xs text-red-400 mt-1">
+                                {partErrorText}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Show timing information */}
+                          <div className="text-xs text-muted-foreground">
+                            {partState === 'output-available' ? (
+                              <span className="text-green-400">✓</span>
+                            ) : partState === 'output-error' ? (
+                              <span className="text-red-400">✗</span>
+                            ) : (
+                              <div className="w-2 h-2 bg-primary/50 rounded-full animate-pulse"></div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    }
+                    
                     return null
                   })}
-                </p>
+                </div>
                 <p className="text-xs text-muted-foreground mt-2">{new Date().toLocaleTimeString()}</p>
               </div>
             </div>
           ))}
 
-          {/* Loading State Overlay */}
+          {/* Enhanced Loading State Overlay */}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
-              <div className="glassmorphism rounded-2xl p-4 max-w-[80%]">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <p className="text-sm font-medium">Thinking...</p>
+              <div className="glassmorphism rounded-2xl p-6 max-w-[80%]">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-primary animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">AI is Working</p>
+                    <p className="text-xs text-muted-foreground">Processing your request</p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Processing your request</p>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                    <span>Analyzing your request</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                    <span>Preparing educational content</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                    <span>Tools will appear as they're used</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}

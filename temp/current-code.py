@@ -1,112 +1,158 @@
-
 from manim import *
 
-class ElectricFieldAnimation(Scene):
+class BooleanAlgebraAnimation(Scene):
     def construct(self):
         # Section 1: Introduction
         self.next_section("Introduction")
-        title = Text("Visualizing Electric Fields")
+        title = Text("Boolean Algebra", font_size=48)
+        subtitle = Text("The Mathematics of Logic", font_size=36)
+        VGroup(title, subtitle).arrange(DOWN, buff=0.5)
         self.play(Write(title))
+        self.play(FadeIn(subtitle, shift=UP))
         self.wait(1)
-        self.play(FadeOut(title))
+        self.play(FadeOut(VGroup(title, subtitle)))
 
-        # Section 2: Positive Charge
-        self.next_section("Positive Charge")
+        # Section 2: Basic Operations
+        self.next_section("Basic Operations")
+        operations = VGroup(
+            Text("AND (∧)", color=BLUE),
+            Text("OR (∨)", color=GREEN),
+            Text("NOT (¬)", color=RED)
+        ).arrange(DOWN, buff=1)
         
-        charge_pos = Dot(color=RED)
-        plus = MathTex("+").scale(0.8).move_to(charge_pos.get_center())
-        positive_charge_label = Text("Positive Charge (+Q)").next_to(charge_pos, UP)
-        
-        positive_charge = VGroup(charge_pos, plus)
-        
-        field_lines_out = VGroup()
-        for angle in np.arange(0, TAU, TAU / 8):
-            arrow = Arrow(
-                charge_pos.get_center(),
-                charge_pos.get_center() + 2 * np.array([np.cos(angle), np.sin(angle), 0]),
-                buff=0.2,
-                color=YELLOW
-            )
-            field_lines_out.add(arrow)
-            
-        self.play(Create(positive_charge), Write(positive_charge_label))
-        self.play(LaggedStart(*[Create(line) for line in field_lines_out], lag_ratio=0.2))
-        self.wait(2)
-        
-        positive_group = VGroup(positive_charge, positive_charge_label, field_lines_out)
-        self.play(FadeOut(positive_group))
+        self.play(Write(operations[0]))
+        self.wait(0.5)
+        self.play(Write(operations[1]))
+        self.wait(0.5)
+        self.play(Write(operations[2]))
         self.wait(1)
+        self.play(FadeOut(operations))
 
-        # Section 3: Negative Charge
-        self.next_section("Negative Charge")
-        
-        charge_neg = Dot(color=BLUE)
-        minus = MathTex("-").scale(0.8).move_to(charge_neg.get_center())
-        negative_charge_label = Text("Negative Charge (-Q)").next_to(charge_neg, UP)
+        # Section 3: AND Operation
+        self.next_section("AND Operation")
+        and_title = Text("AND Operation (∧)", color=BLUE)
+        and_title.to_edge(UP)
+        self.play(Write(and_title))
 
-        negative_charge = VGroup(charge_neg, minus)
+        truth_table = VGroup(
+            Text("A", color=YELLOW),
+            Text("B", color=YELLOW),
+            Text("A ∧ B", color=BLUE)
+        ).arrange(RIGHT, buff=1)
+        truth_table.next_to(and_title, DOWN, buff=1)
 
-        field_lines_in = VGroup()
-        for angle in np.arange(0, TAU, TAU / 8):
-            arrow = Arrow(
-                charge_neg.get_center() + 2 * np.array([np.cos(angle), np.sin(angle), 0]),
-                charge_neg.get_center(),
-                buff=0.2,
-                color=YELLOW
-            )
-            field_lines_in.add(arrow)
-        
-        self.play(Create(negative_charge), Write(negative_charge_label))
-        self.play(LaggedStart(*[Create(line) for line in field_lines_in], lag_ratio=0.2))
-        self.wait(2)
+        values = VGroup(
+            VGroup(
+                Text("1", color=WHITE),
+                Text("1", color=WHITE),
+                Text("1", color=BLUE)
+            ).arrange(RIGHT, buff=1),
+            VGroup(
+                Text("1", color=WHITE),
+                Text("0", color=WHITE),
+                Text("0", color=BLUE)
+            ).arrange(RIGHT, buff=1),
+            VGroup(
+                Text("0", color=WHITE),
+                Text("1", color=WHITE),
+                Text("0", color=BLUE)
+            ).arrange(RIGHT, buff=1),
+            VGroup(
+                Text("0", color=WHITE),
+                Text("0", color=WHITE),
+                Text("0", color=BLUE)
+            ).arrange(RIGHT, buff=1)
+        ).arrange(DOWN, buff=0.5)
+        values.next_to(truth_table, DOWN, buff=0.5)
 
-        negative_group = VGroup(negative_charge, negative_charge_label, field_lines_in)
-        self.play(FadeOut(negative_group))
+        self.play(Write(truth_table))
         self.wait(1)
-
-        # Section 4: Electric Dipole
-        self.next_section("Electric Dipole")
-        dipole_title = Text("Electric Dipole").to_edge(UP)
-
-        charge1_pos = np.array([-2, 0, 0])
-        charge2_pos = np.array([2, 0, 0])
-        
-        charge1 = Dot(charge1_pos, color=RED)
-        plus1 = MathTex("+").move_to(charge1.get_center())
-        charge1_group = VGroup(charge1, plus1)
-
-        charge2 = Dot(charge2_pos, color=BLUE)
-        minus2 = MathTex("-").move_to(charge2.get_center())
-        charge2_group = VGroup(charge2, minus2)
-        
-        def electric_field_func(p):
-            r1 = p - charge1_pos
-            r2 = p - charge2_pos
-            if np.linalg.norm(r1) == 0 or np.linalg.norm(r2) == 0:
-                return np.array([0,0,0])
-            return (r1 / np.linalg.norm(r1)**3) - (r2 / np.linalg.norm(r2)**3)
-
-        stream_lines = StreamLines(
-            electric_field_func,
-            x_range=[-5, 5],
-            y_range=[-4, 4],
-            stroke_width=2,
-            color=YELLOW,
-        )
-        
-        self.play(Write(dipole_title))
-        self.play(Create(charge1_group), Create(charge2_group))
-        
-        self.add(stream_lines)
-        stream_lines.start_animation(flow_speed=1.5, time_width=0.5)
-        self.wait(3)
-        
-        self.play(FadeOut(stream_lines), FadeOut(charge1_group), FadeOut(charge2_group), FadeOut(dipole_title))
+        for row in values:
+            self.play(Write(row))
+            self.wait(0.5)
         self.wait(1)
+        self.play(FadeOut(VGroup(and_title, truth_table, values)))
 
-        # Section 5: Conclusion
+        # Section 4: OR Operation
+        self.next_section("OR Operation")
+        or_title = Text("OR Operation (∨)", color=GREEN)
+        or_title.to_edge(UP)
+        self.play(Write(or_title))
+
+        or_table = VGroup(
+            Text("A", color=YELLOW),
+            Text("B", color=YELLOW),
+            Text("A ∨ B", color=GREEN)
+        ).arrange(RIGHT, buff=1)
+        or_table.next_to(or_title, DOWN, buff=1)
+
+        or_values = VGroup(
+            VGroup(
+                Text("1", color=WHITE),
+                Text("1", color=WHITE),
+                Text("1", color=GREEN)
+            ).arrange(RIGHT, buff=1),
+            VGroup(
+                Text("1", color=WHITE),
+                Text("0", color=WHITE),
+                Text("1", color=GREEN)
+            ).arrange(RIGHT, buff=1),
+            VGroup(
+                Text("0", color=WHITE),
+                Text("1", color=WHITE),
+                Text("1", color=GREEN)
+            ).arrange(RIGHT, buff=1),
+            VGroup(
+                Text("0", color=WHITE),
+                Text("0", color=WHITE),
+                Text("0", color=GREEN)
+            ).arrange(RIGHT, buff=1)
+        ).arrange(DOWN, buff=0.5)
+        or_values.next_to(or_table, DOWN, buff=0.5)
+
+        self.play(Write(or_table))
+        self.wait(1)
+        for row in or_values:
+            self.play(Write(row))
+            self.wait(0.5)
+        self.wait(1)
+        self.play(FadeOut(VGroup(or_title, or_table, or_values)))
+
+        # Section 5: NOT Operation
+        self.next_section("NOT Operation")
+        not_title = Text("NOT Operation (¬)", color=RED)
+        not_title.to_edge(UP)
+        self.play(Write(not_title))
+
+        not_table = VGroup(
+            Text("A", color=YELLOW),
+            Text("¬A", color=RED)
+        ).arrange(RIGHT, buff=1)
+        not_table.next_to(not_title, DOWN, buff=1)
+
+        not_values = VGroup(
+            VGroup(
+                Text("1", color=WHITE),
+                Text("0", color=RED)
+            ).arrange(RIGHT, buff=1),
+            VGroup(
+                Text("0", color=WHITE),
+                Text("1", color=RED)
+            ).arrange(RIGHT, buff=1)
+        ).arrange(DOWN, buff=0.5)
+        not_values.next_to(not_table, DOWN, buff=0.5)
+
+        self.play(Write(not_table))
+        self.wait(1)
+        for row in not_values:
+            self.play(Write(row))
+            self.wait(0.5)
+        self.wait(1)
+        self.play(FadeOut(VGroup(not_title, not_table, not_values)))
+
+        # Section 6: Conclusion
         self.next_section("Conclusion")
-        conclusion_text = Text("Field lines map the invisible forces that shape our universe.").scale(0.7)
-        self.play(Write(conclusion_text))
-        self.wait(3)
-        self.play(FadeOut(conclusion_text))
+        conclusion = Text("Boolean Algebra: Foundation of Digital Logic", color=YELLOW)
+        self.play(Write(conclusion))
+        self.wait(2)
+        self.play(FadeOut(conclusion))
