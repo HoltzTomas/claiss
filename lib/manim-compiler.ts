@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync } from 'fs';
 import path from 'path';
 
 export interface ManimCompilationResult {
@@ -17,7 +17,7 @@ export async function compileManimCode(
   const tempDir = `/tmp/manim-current`;
   const fileName = `current_animation.py`;
   const filePath = path.join(tempDir, fileName);
-  const outputDir = path.join(process.cwd(), 'public', 'videos');
+  const outputDir = '/tmp';
   
   try {
     console.log(`[MANIM-COMPILER] Starting compilation for ${className}`);
@@ -25,23 +25,7 @@ export async function compileManimCode(
     // Create temporary directory
     mkdirSync(tempDir, { recursive: true });
     
-    // Ensure output directory exists
-    mkdirSync(outputDir, { recursive: true });
-    
-    // Delete all existing videos in output directory
-    console.log('[MANIM-COMPILER] 🗑️  Cleaning old videos...');
-    try {
-      const existingFiles = readdirSync(outputDir);
-      const videoFiles = existingFiles.filter(file => file.endsWith('.mp4'));
-      videoFiles.forEach(file => {
-        const filePath = path.join(outputDir, file);
-        unlinkSync(filePath);
-        console.log(`[MANIM-COMPILER]   - Deleted: ${file}`);
-      });
-      console.log(`[MANIM-COMPILER] ✅ Removed ${videoFiles.length} old videos`);
-    } catch (error) {
-      console.log('[MANIM-COMPILER] ℹ️  No old videos to clean');
-    }
+    // Note: In production, videos are stored in /tmp and served via API endpoints
     
     // Write Python code to file
     writeFileSync(filePath, pythonCode);
@@ -64,15 +48,16 @@ export async function compileManimCode(
     
     // Find the generated video file in the standard Manim output structure
     const manimOutputPath = path.join(tempDir, 'media', 'videos', 'current_animation', '480p15', `${className}.mp4`);
-    const finalVideoPath = path.join(outputDir, 'latest.mp4'); // Always use 'latest.mp4' as filename
+    const finalVideoPath = path.join(outputDir, 'latest.mp4'); // Store in /tmp
     
     console.log(`[MANIM-COMPILER] 🔍 Looking for video at: ${manimOutputPath}`);
     
     if (existsSync(manimOutputPath)) {
-      // Copy the video to public directory with unique name
+      // Copy the video to /tmp directory
       copyFileSync(manimOutputPath, finalVideoPath);
       
-      const videoUrl = `/videos/${path.basename(finalVideoPath)}`;
+      // Serve videos via API endpoint from /tmp
+      const videoUrl = `/api/videos`;
       console.log(`[MANIM-COMPILER] 🎬 Video generated: ${videoUrl}`);
       
       return {

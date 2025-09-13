@@ -99,7 +99,7 @@ export default function ClassiaChat() {
     try {
       // Add cache busting with timestamp to force browser reload
       const timestamp = Date.now()
-      const testUrl = `/videos/latest.mp4?t=${timestamp}`
+      const testUrl = `/api/videos?t=${timestamp}`
       const response = await fetch(testUrl, { method: "HEAD" })
       if (response.ok) {
         setHasVideo(true)
