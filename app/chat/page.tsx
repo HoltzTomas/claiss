@@ -568,41 +568,7 @@ export default function ClassiaChat() {
                     className="w-full max-w-2xl"
                   />
 
-                  <div className="flex justify-center mt-6">
-                    <EtherealButton
-                      onClick={handleAddVoice}
-                      disabled={isGeneratingVoice}
-                      className={`transition-all duration-300 ${
-                        voiceStatus === "success"
-                          ? "bg-green-500/20 border-green-500/50 text-green-400"
-                          : voiceStatus === "error"
-                            ? "bg-red-500/20 border-red-500/50 text-red-400"
-                            : ""
-                      }`}
-                    >
-                      {isGeneratingVoice ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          <span>Adding Voice...</span>
-                        </>
-                      ) : voiceStatus === "success" ? (
-                        <>
-                          <Check className="w-4 h-4 animate-pulse" />
-                          <span>Voice Added!</span>
-                        </>
-                      ) : voiceStatus === "error" ? (
-                        <>
-                          <X className="w-4 h-4 animate-bounce" />
-                          <span>Failed to Add Voice</span>
-                        </>
-                      ) : (
-                        <>
-                          <Mic className="w-4 h-4" />
-                          <span>Add Voice</span>
-                        </>
-                      )}
-                    </EtherealButton>
-                  </div>
+                  {/* Add Voice button temporarily hidden */}
                 </div>
               </div>
             ) : activeTab === "code" ? (
