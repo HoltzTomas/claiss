@@ -7,10 +7,10 @@ class RecursiveFunctionAnimation(Scene):
         self.next_section("Introduction")
         title = Text("Recursive Functions")
         subtitle = Text("Functions that call themselves to solve a problem", font_size=36).next_to(title, DOWN)
-        self.play(FadeIn(title), FadeIn(subtitle))
-        self.wait(2)
+        self.play(FadeIn(title), FadeIn(subtitle), run_time=1.5)
+        self.wait(3)
         self.play(FadeOut(title), FadeOut(subtitle))
-        self.wait(1)
+        self.wait(1.5)
 
         # Section 2: Factorial Example
         self.next_section("Factorial Example")
@@ -18,12 +18,12 @@ class RecursiveFunctionAnimation(Scene):
         # Display the recursive definition
         definition = MathTex(r"\text{factorial}(n) = n \times \text{factorial}(n-1)").to_edge(UP)
         base_case = MathTex(r"\text{factorial}(0) = 1").next_to(definition, DOWN)
-        self.play(Write(definition), Write(base_case))
-        self.wait(2)
+        self.play(Write(definition), Write(base_case), run_time=2)
+        self.wait(3)
 
         # Remove the definition to make space for the call stack visualization
         self.play(FadeOut(definition), FadeOut(base_case))
-        self.wait(0.5)
+        self.wait(1)
 
         # Visualize the call stack
         n_val = 4
@@ -48,12 +48,12 @@ class RecursiveFunctionAnimation(Scene):
 
         # Animate their creation one by one
         for call_group in all_calls:
-            self.play(Create(call_group), run_time=0.7)
-            self.wait(0.5)
+            self.play(Create(call_group), run_time=1.2)
+            self.wait(1)
 
-        self.wait(1)
-        self.play(Indicate(call_stack[-1], color=GREEN)) # Highlight base case
-        self.wait(1)
+        self.wait(2)
+        self.play(Indicate(call_stack[-1], color=GREEN, scale_factor=1.1)) # Highlight base case
+        self.wait(2)
 
         # Animate the returns "unwinding"
         return_val = 1
@@ -65,20 +65,21 @@ class RecursiveFunctionAnimation(Scene):
 
             self.play(
                 FadeOut(current_group),
-                return_val_text.animate.move_to(prev_group[1].get_center() + LEFT * 1.5)
+                return_val_text.animate.move_to(prev_group[1].get_center() + LEFT * 1.5),
+                run_time=1.5
             )
-            self.wait(0.2)
+            self.wait(0.5)
             
             return_val = i * return_val
             new_text_str = f"factorial({i}) = {return_val}"
             new_text = Text(new_text_str, font_size=32).move_to(prev_group.get_center())
 
             self.play(FadeOut(return_val_text), Transform(prev_group[1], new_text))
-            self.wait(1)
+            self.wait(2)
 
         final_result_box = SurroundingRectangle(call_stack[0], color=GREEN, buff=0.2)
         self.play(Create(final_result_box))
-        self.wait(2)
+        self.wait(3)
 
         # Section 3: Conclusion
         self.next_section("Conclusion")
@@ -92,8 +93,9 @@ class RecursiveFunctionAnimation(Scene):
         recursive_step_desc = Text("The function calls itself, moving closer to the base case.", font_size=32).next_to(recursive_step_text, RIGHT, buff=0.2)
         
         self.play(Write(conclusion_title))
-        self.play(FadeIn(base_case_text, shift=RIGHT), FadeIn(base_case_desc, shift=RIGHT))
         self.wait(1)
+        self.play(FadeIn(base_case_text, shift=RIGHT), FadeIn(base_case_desc, shift=RIGHT))
+        self.wait(2)
         self.play(FadeIn(recursive_step_text, shift=RIGHT), FadeIn(recursive_step_desc, shift=RIGHT))
-        self.wait(3)
+        self.wait(4)
         self.play(FadeOut(*self.mobjects))

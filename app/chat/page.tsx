@@ -201,14 +201,9 @@ export default function ClassiaChat() {
 
   return (
     <div className="h-screen bg-background text-foreground flex overflow-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
 
       {/* Chat Sidebar */}
-      <div className="w-1/2 border-r border-border/50 flex flex-col h-screen overflow-hidden">
+      <div className="w-1/2 border-r border-border/50 flex flex-col min-h-screen overflow-hidden">
         {/* Chat Header */}
         <div className="p-6 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-3">
