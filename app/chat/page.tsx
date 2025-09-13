@@ -5,7 +5,6 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { GlassCard } from "@/components/glass-card"
 import { EtherealButton } from "@/components/ethereal-button"
 import { GlowingInput } from "@/components/glowing-input"
 import { VideoPlayer } from "@/components/video-player"
@@ -108,6 +107,17 @@ export default function ClassiaChat() {
     setIsLoadingCode(true)
     try {
       const response = await fetch("/api/current-code")
+
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.log("[FRONTEND] API returned non-JSON response, likely API not available")
+        setCurrentCode(null)
+        setCurrentScript(null)
+        setScriptTitle(null)
+        setHasGeneratedScript(false)
+        return
+      }
+
       const data = await response.json()
 
       if (data.success && data.hasCode) {
@@ -131,9 +141,11 @@ export default function ClassiaChat() {
         console.log("[FRONTEND] No current script found")
       }
     } catch (error) {
-      console.error("[FRONTEND] Error fetching current code/script:", error)
+      console.log("[FRONTEND] API not available, using fallback behavior")
       setCurrentCode(null)
       setCurrentScript(null)
+      setScriptTitle(null)
+      setHasGeneratedScript(false)
     } finally {
       setIsLoadingCode(false)
     }
@@ -275,45 +287,43 @@ export default function ClassiaChat() {
 
       {/* Content Area */}
       <div className="w-1/2 flex flex-col h-screen overflow-hidden">
-        {messages.length > 0 && (hasVideo || hasGeneratedCode || hasGeneratedScript) && (
-          <div className="border-b border-border/50 p-4 flex-shrink-0">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab("video")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "video"
-                    ? "glassmorphism text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
-              >
-                <Video className="w-4 h-4" />
-                Video
-              </button>
-              <button
-                onClick={() => setActiveTab("code")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "code"
-                    ? "glassmorphism text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
-              >
-                <Code className="w-4 h-4" />
-                Code
-              </button>
-              <button
-                onClick={() => setActiveTab("script")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "script"
-                    ? "glassmorphism text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                Script
-              </button>
-            </div>
+        <div className="border-b border-border/50 p-4 flex-shrink-0">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("video")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "video"
+                  ? "glassmorphism text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              <Video className="w-4 h-4" />
+              Video
+            </button>
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "code"
+                  ? "glassmorphism text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              <Code className="w-4 h-4" />
+              Code
+            </button>
+            <button
+              onClick={() => setActiveTab("script")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "script"
+                  ? "glassmorphism text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Script
+            </button>
           </div>
-        )}
+        </div>
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <div className="flex items-center justify-center min-h-full">
@@ -370,11 +380,11 @@ export default function ClassiaChat() {
                     <h2 className="text-2xl font-semibold mb-2">Latest Animation</h2>
                     <p className="text-muted-foreground">Your generated educational video</p>
                   </div>
-                  <VideoPlayer 
-                    key={videoUrl} 
-                    src={videoUrl} 
-                    title="Educational Animation" 
-                    className="w-full max-w-2xl" 
+                  <VideoPlayer
+                    key={videoUrl}
+                    src={videoUrl}
+                    title="Educational Animation"
+                    className="w-full max-w-2xl"
                   />
 
                   <div className="flex justify-center mt-6">
@@ -483,21 +493,6 @@ export default function ClassiaChat() {
                 </div>
               </div>
             )
-          ) : messages.length > 0 ? (
-            <div className="flex items-center justify-center min-h-full">
-              <div className="text-center space-y-6">
-                <GlassCard className="p-8 max-w-md">
-                  <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Sparkles className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Chat Active!</h3>
-                  <p className="text-muted-foreground mb-4">Continue the conversation or ask a new question.</p>
-                  <div className="text-sm text-muted-foreground">
-                    {messages.length} message{messages.length !== 1 ? "s" : ""} exchanged
-                  </div>
-                </GlassCard>
-              </div>
-            </div>
           ) : (
             <div className="flex items-center justify-center min-h-full">
               <div className="text-center space-y-6 max-w-md">
