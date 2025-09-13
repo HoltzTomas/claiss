@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/elevenlabs": "^1.0.10",
     "@ai-sdk/google": "^2.0.13",
     "@ai-sdk/openai": "latest",
     "@ai-sdk/react": "latest",

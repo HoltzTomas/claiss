@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { experimental_generateSpeech } from 'ai';
 import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
@@ -15,20 +15,25 @@ export interface VoicedVideoResult {
 /**
  * Generate TTS audio from text using AI SDK
  */
-export async function generateTTSAudio(text: string, voice: string = 'alloy'): Promise<Buffer> {
+export async function generateTTSAudio(text: string, voice: string = '21m00Tcm4TlvDq8ikWAM'): Promise<Buffer> {
   try {
     console.log('[TTS] ============ generateTTSAudio called =============');
     console.log('[TTS] Text length:', text.length);
     console.log('[TTS] Voice:', voice);
-    console.log('[TTS] Environment check - OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+    console.log('[TTS] Environment check - ELEVENLABS_API_KEY exists:', !!process.env.ELEVENLABS_API_KEY);
     
-    console.log('[TTS] Found API key, proceeding with real TTS generation');
+    // Check if ElevenLabs API key is configured
+    if (!process.env.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY.trim() === '') {
+      throw new Error('ELEVENLABS_API_KEY environment variable is not set');
+    }
+    
+    console.log('[TTS] Found ElevenLabs API key, proceeding with TTS generation');
     
     let speechResult;
     try {
       speechResult = await experimental_generateSpeech({
-        model: openai.speech('tts-1'),
-        voice: voice as any,
+        model: elevenlabs.speech('eleven_multilingual_v2'),
+        voice: voice, // ElevenLabs voice ID
         text: text,
         outputFormat: 'mp3',
       });
@@ -180,7 +185,7 @@ export async function mergeVideoWithAudio(
  */
 export async function generateVoicedVideo(
   scriptText?: string,
-  voice: string = 'alloy'
+  voice: string = '21m00Tcm4TlvDq8ikWAM'
 ): Promise<VoicedVideoResult> {
   try {
     console.log('[PIPELINE] ========== generateVoicedVideo called ==========');

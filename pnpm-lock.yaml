@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@ai-sdk/elevenlabs':
+        specifier: ^1.0.10
+        version: 1.0.10(zod@3.25.67)
       '@ai-sdk/google':
         specifier: ^2.0.13
         version: 2.0.13(zod@3.25.67)
@@ -234,6 +237,12 @@ importers:
 
 packages:
 
+  '@ai-sdk/elevenlabs@1.0.10':
+    resolution: {integrity: sha512-ZljKqxyKQH7FvUV7iUfHcqzJkOuqck53+dZCGK0PG/UMRAvAzQvjl8um5lOLXSf6mhQJXE3Lx1etf+h/Sz6aCQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
   '@ai-sdk/gateway@1.0.20':
     resolution: {integrity: sha512-2K0kGnHyLfT1v2+3xXbLqohfWBJ/vmIh1FTWnrvZfvuUuBdOi2DMgnSQzkLvFVLyM8mhOcx+ZwU6IOOsuyOv/w==}
     engines: {node: '>=18'}
@@ -254,6 +263,12 @@ packages:
 
   '@ai-sdk/provider-utils@3.0.8':
     resolution: {integrity: sha512-cDj1iigu7MW2tgAQeBzOiLhjHOUM9vENsgh4oAVitek0d//WdgfPCsKO3euP7m7LyO/j9a1vr/So+BGNdpFXYw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
+  '@ai-sdk/provider-utils@3.0.9':
+    resolution: {integrity: sha512-Pm571x5efqaI4hf9yW4KsVlDBDme8++UepZRnq+kqVBWWjgvGhQlzU8glaFq0YJEB9kkxZHbRRyVeHoV2sRYaQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -2698,6 +2713,12 @@ packages:
 
 snapshots:
 
+  '@ai-sdk/elevenlabs@1.0.10(zod@3.25.67)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.9(zod@3.25.67)
+      zod: 3.25.67
+
   '@ai-sdk/gateway@1.0.20(zod@3.25.67)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -2717,6 +2738,13 @@ snapshots:
       zod: 3.25.67
 
   '@ai-sdk/provider-utils@3.0.8(zod@3.25.67)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.6
+      zod: 3.25.67
+
+  '@ai-sdk/provider-utils@3.0.9(zod@3.25.67)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@standard-schema/spec': 1.0.0

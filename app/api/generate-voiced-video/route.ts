@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       console.log('[GENERATE-VOICED-VIDEO] No JSON body provided, using defaults');
     }
 
-    const { scriptText, voice = 'alloy' } = body;
+    const { scriptText, voice = '21m00Tcm4TlvDq8ikWAM' } = body;
     
     console.log('[GENERATE-VOICED-VIDEO] Parameters:');
     console.log('  - Voice:', voice);
@@ -84,8 +84,19 @@ export async function GET(request: NextRequest) {
     description: 'POST to this endpoint to generate a video with TTS narration',
     parameters: {
       scriptText: 'Optional - custom script text (if not provided, reads from temp/current-script.txt)',
-      voice: 'Optional - TTS voice to use (default: alloy)'
+      voice: 'Optional - ElevenLabs voice ID to use (default: Rachel - 21m00Tcm4TlvDq8ikWAM)'
     },
-    availableVoices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+    availableVoices: [
+      '21m00Tcm4TlvDq8ikWAM', // Rachel (default)
+      'AZnzlk1XvdvUeBnXmlld', // Domi
+      'EXAVITQu4vr4xnSDxMaL', // Bella
+      'ErXwobaYiN019PkySvjV', // Antoni
+      'MF3mGyEYCl7XYWbV9V6O', // Elli
+      'TxGEqnHWrfWFTfGW9XjX', // Josh
+      'VR6AewLTigWG4xSOukaG', // Arnold
+      'pNInz6obpgDQGcFmaJgB', // Adam
+      'yoZ06aMxZJJ28mfd3POQ', // Sam
+      'Custom voice ID from your ElevenLabs account'
+    ]
   });
 }
