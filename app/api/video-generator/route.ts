@@ -242,7 +242,7 @@ NEVER include Python code in your text responses - only use the writeCode tool f
     };
     
     const result = streamText({
-      model: anthropic('claude-3-5-haiku-20241022'),
+      model: anthropic('claude-3-haiku-20240307'),
       // toolCallStreaming is enabled by default in AI SDK v5
       system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
 

@@ -1,11 +1,7 @@
-# Electric Field Lines: Positive vs Negative Charges
+# Bubble Sort Algorithm Explained
 
-Let's explore how electric field lines behave around charged particles! Understanding the direction of electric field lines is crucial in physics, and we'll see how they differ between positive and negative charges.
+Welcome to an animated explanation of the Bubble Sort algorithm! Bubble Sort is a simple yet fundamental sorting technique that helps us understand how sorting works behind the scenes.
 
-First, let's look at a positive charge. Notice how the field lines radiate outward from the positive charge, with yellow arrows pointing away from the center. This shows that electric field lines always emerge from positive charges, spreading outward in all directions. Think of it as the positive charge "pushing" the field lines away.
+In this animation, we start with an unsorted array of numbers: 5, 2, 8, 12, 1, and 6. Watch carefully as the algorithm compares adjacent elements and swaps them if they are in the wrong order. Notice how in each pass, the largest unsorted element "bubbles up" to its correct position at the end of the array.
 
-Next, we see a negative charge. Here, the behavior is exactly opposite - all field lines point inward toward the negative charge, as shown by the yellow arrows. The negative charge acts like a sink, "pulling" the field lines toward it. This is a fundamental principle: electric field lines always point toward negative charges.
-
-Finally, we combine both charges to create an electric dipole. Watch how the field lines now flow from the positive charge (top) to the negative charge (bottom). The yellow arrows show this natural flow of the electric field. Some field lines connect directly between the charges, while others extend out into space. This pattern is exactly what we expect: emerging from positive, flowing toward negative.
-
-Remember the key principle: electric field lines always point away from positive charges and toward negative charges. This simple rule helps us understand and predict how electric fields behave in any arrangement of charges.
+The magic of Bubble Sort happens through repeated comparisons. In each iteration, it compares neighboring elements and swaps them if they are out of order. Think of it like sorting a stack of cards by repeatedly comparing and rearranging them. By the end of the process, our array transforms from a random collection of numbers into a perfectly sorted sequence, demonstrating how even a simple algorithm can bring order to chaos!
