@@ -9,8 +9,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/elevenlabs": "^1.0.10",
-    "@ai-sdk/google": "^2.0.13",
+    "@ai-sdk/elevenlabs": "latest",
+    "@ai-sdk/google": "latest",
     "@ai-sdk/openai": "latest",
     "@ai-sdk/react": "latest",
     "@hookform/resolvers": "^3.10.0",
@@ -54,7 +54,7 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
-    "fluent-ffmpeg": "^2.1.3",
+    "fluent-ffmpeg": "latest",
     "fs": "latest",
     "geist": "latest",
     "input-otp": "1.4.1",

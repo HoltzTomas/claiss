@@ -9,7 +9,7 @@ import { GlassCard } from "@/components/glass-card"
 import { EtherealButton } from "@/components/ethereal-button"
 import { GlowingInput } from "@/components/glowing-input"
 import { VideoPlayer } from "@/components/video-player"
-import { Send, Sparkles, Play, Clock, BookOpen, Film, Video, Code, FileText } from "lucide-react"
+import { Send, Sparkles, Play, Clock, BookOpen, Film, Video, Code, FileText, Mic, Check, X } from "lucide-react"
 
 export default function ClassiaChat() {
   const [input, setInput] = useState("")
@@ -23,6 +23,8 @@ export default function ClassiaChat() {
   const [currentScript, setCurrentScript] = useState<string | null>(null)
   const [scriptTitle, setScriptTitle] = useState<string | null>(null)
   const [hasGeneratedScript, setHasGeneratedScript] = useState(false)
+  const [isGeneratingVoice, setIsGeneratingVoice] = useState(false)
+  const [voiceStatus, setVoiceStatus] = useState<"idle" | "success" | "error">("idle")
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -40,7 +42,7 @@ export default function ClassiaChat() {
   // Check for latest video
   const checkForVideo = async () => {
     try {
-      const testUrl = `/videos/latest.mp4` // Cache busting
+      const testUrl = `https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_6BP1I5ITTawJUoFdn9HTWEVvfVF9/dsPkP2DIWyN9EQ-KTzErLw/public/videos/latest.mp4` // Cache busting
       const response = await fetch(testUrl, { method: "HEAD" })
       if (response.ok) {
         setHasVideo(true)
@@ -66,26 +68,26 @@ export default function ClassiaChat() {
   const checkVideoWithRetries = async (attempt = 1, maxAttempts = 10) => {
     setIsCompilingVideo(true)
     console.log(`[FRONTEND] Checking for video... attempt ${attempt}`)
-    
+
     const found = await checkForVideo()
-    
+
     if (found) {
       setHasGeneratedCode(true)
       setIsCompilingVideo(false)
       console.log("[FRONTEND] ✅ Video found!")
       return
     }
-    
+
     if (attempt >= maxAttempts) {
       setIsCompilingVideo(false)
       console.log("[FRONTEND] ❌ Max attempts reached, video not found")
       return
     }
-    
+
     // Wait with exponential backoff: 1s, 2s, 4s, 6s, 8s, 10s...
     const delay = Math.min(attempt * 2000, 10000)
     console.log(`[FRONTEND] Waiting ${delay}ms before next attempt...`)
-    
+
     setTimeout(() => {
       checkVideoWithRetries(attempt + 1, maxAttempts)
     }, delay)
@@ -147,6 +149,38 @@ export default function ClassiaChat() {
 
     sendMessage({ text: input })
     setInput("")
+  }
+
+  const handleAddVoice = async () => {
+    setIsGeneratingVoice(true)
+    setVoiceStatus("idle")
+
+    try {
+      const response = await fetch("/api/generate-voiced-video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (response.ok) {
+        setVoiceStatus("success")
+        // Refresh video after voice is added
+        setTimeout(() => {
+          checkForVideo()
+          setVoiceStatus("idle")
+        }, 2000)
+      } else {
+        setVoiceStatus("error")
+        setTimeout(() => setVoiceStatus("idle"), 3000)
+      }
+    } catch (error) {
+      console.error("Error generating voice:", error)
+      setVoiceStatus("error")
+      setTimeout(() => setVoiceStatus("idle"), 3000)
+    } finally {
+      setIsGeneratingVoice(false)
+    }
   }
 
   return (
@@ -333,6 +367,42 @@ export default function ClassiaChat() {
                     <p className="text-muted-foreground">Your generated educational video</p>
                   </div>
                   <VideoPlayer src={videoUrl} title="Educational Animation" className="w-full max-w-2xl" />
+
+                  <div className="flex justify-center mt-6">
+                    <EtherealButton
+                      onClick={handleAddVoice}
+                      disabled={isGeneratingVoice}
+                      className={`transition-all duration-300 ${
+                        voiceStatus === "success"
+                          ? "bg-green-500/20 border-green-500/50 text-green-400"
+                          : voiceStatus === "error"
+                            ? "bg-red-500/20 border-red-500/50 text-red-400"
+                            : ""
+                      }`}
+                    >
+                      {isGeneratingVoice ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          <span>Adding Voice...</span>
+                        </>
+                      ) : voiceStatus === "success" ? (
+                        <>
+                          <Check className="w-4 h-4 animate-pulse" />
+                          <span>Voice Added!</span>
+                        </>
+                      ) : voiceStatus === "error" ? (
+                        <>
+                          <X className="w-4 h-4 animate-bounce" />
+                          <span>Failed to Add Voice</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-4 h-4" />
+                          <span>Add Voice</span>
+                        </>
+                      )}
+                    </EtherealButton>
+                  </div>
                 </div>
               </div>
             ) : activeTab === "code" ? (

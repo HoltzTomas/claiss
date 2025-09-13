@@ -76,4 +76,3 @@ class BubbleSortAnimation(Scene):
             FadeOut(sorted_text)
         )
         self.wait(1)
-
