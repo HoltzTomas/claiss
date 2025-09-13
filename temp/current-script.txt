@@ -1,11 +1,11 @@
-# Recursive Functions
+# Visualizing Electric Fields
 
-Welcome! In this video, we'll explore recursive functions—a powerful programming concept where a function calls itself to break down a problem into smaller, more manageable pieces.
+Today, we'll be visualizing the invisible force that governs electricity: the electric field.
 
-We'll use a classic example: the factorial function. As you see, the factorial of 'n' is defined as 'n' times the factorial of 'n-1'. To prevent this from going on forever, we need a base case: the factorial of 0 is 1.
+First, we see a single positive charge. The arrows, known as field lines, show the direction of the force that a positive test charge would experience. For a positive source, the field lines radiate outwards, showing a force of repulsion.
 
-Now let's watch this in action by calculating the factorial of 4. First, the main function `factorial(4)` is called. Because it can't resolve on its own, it calls `factorial(3)`. This continues down the line, creating a call stack, until we reach our base case, `factorial(0)`.
+Next, we have a negative charge. Notice how the field lines now point inwards. This indicates that a positive test charge would be attracted towards the negative source charge. The density of the lines represents the strength of the field—closer to the charge, the force is stronger.
 
-Once the base case is highlighted, it returns the value 1. Watch as this value is passed up to the `factorial(1)` call. That frame then computes its result, 1 times 1, and resolves to 1. This new value is passed to the `factorial(2)` call, which computes 2 times 1 and resolves to 2. This unwinding process continues up the call stack. `factorial(3)` receives the 2 and resolves to 6. Finally, the `factorial(4)` call receives the 6, computes 4 times 6, and resolves to our final answer, 24, which is highlighted to complete the process.
+Finally, let's look at an electric dipole, which consists of a positive and a negative charge separated by a distance. The field lines originate from the positive charge and terminate on the negative charge, creating a distinct, curved pattern. This combined field is fundamental to understanding everything from molecules to antennas.
 
-To summarize, every recursive function has two essential components. First, the base case, which is a simple condition that stops the recursion. Second, the recursive step, where the function calls itself with an input that moves it closer to the base case. By combining these two parts, recursion can solve complex problems in an elegant way.
+Electric fields are a powerful concept, providing a map of the electrostatic forces that are fundamental to physics and engineering.
