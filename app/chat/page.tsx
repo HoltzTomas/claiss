@@ -2,13 +2,19 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { EtherealButton } from "@/components/ethereal-button"
 import { GlowingInput } from "@/components/glowing-input"
 import { VideoPlayer } from "@/components/video-player"
 import { Send, Sparkles, Play, Clock, BookOpen, Film, Video, Code, FileText, Mic, Check, X, Cog, Wrench, Search, Zap, Users } from "lucide-react"
+
+// Helper function to check if tool should be hidden from UI
+const isContext7Tool = (toolName: string) => {
+  const context7Tools = ['get-library-docs', 'resolve-library-id']
+  return context7Tools.includes(toolName)
+}
 
 // Helper function to get tool icon and display name
 const getToolInfo = (toolName: string) => {
@@ -21,10 +27,6 @@ const getToolInfo = (toolName: string) => {
       return { icon: FileText, name: 'Writing Script', color: 'text-green-400' }
     case 'readScript':
       return { icon: Search, name: 'Reading Script', color: 'text-emerald-400' }
-    case 'get-library-docs':
-      return { icon: BookOpen, name: 'Fetching Documentation', color: 'text-purple-400' }
-    case 'resolve-library-id':
-      return { icon: Search, name: 'Resolving Library', color: 'text-orange-400' }
     default:
       return { icon: Cog, name: 'Processing', color: 'text-gray-400' }
   }
@@ -51,6 +53,9 @@ const getStateMessage = (state: string, toolName: string) => {
 export default function ClassiaChat() {
   const [input, setInput] = useState("")
   const [hasVideo, setHasVideo] = useState(false)
+  
+  // Ref for auto-scrolling to latest message
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const [videoUrl, setVideoUrl] = useState("")
   const [isCompilingVideo, setIsCompilingVideo] = useState(false)
   const [activeTab, setActiveTab] = useState<"video" | "code" | "script">("video")
@@ -74,7 +79,16 @@ export default function ClassiaChat() {
     },
   })
 
-  const isLoading = status === "streaming"
+  // More granular loading states for better UX
+  const isProcessing = status === "submitted" || status === "streaming"
+  const isWaitingForResponse = status === "submitted" 
+  const isReceivingResponse = status === "streaming"
+  const isLoading = isProcessing // Keep for backward compatibility
+
+  // Auto-scroll function
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
 
   // Check for latest video
   const checkForVideo = async () => {
@@ -138,6 +152,18 @@ export default function ClassiaChat() {
     checkForVideo()
   }, [])
 
+  // Auto-scroll when messages change (new messages, streaming updates)
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  // Auto-scroll when status changes (especially when user sends message)
+  useEffect(() => {
+    if (status === "submitted") {
+      scrollToBottom()
+    }
+  }, [status])
+
   // Fetch current code and script when switching tabs
   const fetchCurrentCode = async () => {
     if (isLoadingCode) return
@@ -198,7 +224,7 @@ export default function ClassiaChat() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
+    if (!input.trim() || isProcessing) return
 
     sendMessage({ text: input })
     setInput("")
@@ -281,13 +307,21 @@ export default function ClassiaChat() {
                       return <span key={i} className="block">{part.text}</span>
                     }
                     
-                    // Handle step boundaries
+                    // Handle step boundaries - only show if there are visible tools around them
                     if (part.type === "step-start") {
-                      return i > 0 ? (
-                        <div key={i} className="flex items-center gap-2 py-2 text-muted-foreground">
-                          <div className="h-px bg-border flex-1"></div>
-                          <span className="text-xs">Step {i}</span>
-                          <div className="h-px bg-border flex-1"></div>
+                      // Check if there are any visible (non-Context7) tools in this message
+                      const hasVisibleTools = message.parts.some(p => {
+                        if (p.type.startsWith('tool-') || p.type === 'dynamic-tool') {
+                          const toolName = p.type === 'dynamic-tool' ? (p as any).toolName : p.type.replace('tool-', '')
+                          return !isContext7Tool(toolName)
+                        }
+                        return false
+                      })
+                      
+                      // Only show step separator if there are visible tools and this isn't the first part
+                      return i > 0 && hasVisibleTools ? (
+                        <div key={i} className="py-2">
+                          <div className="h-px bg-border"></div>
                         </div>
                       ) : null
                     }
@@ -314,6 +348,11 @@ export default function ClassiaChat() {
                         partState = staticPart.state || 'call'
                         partInput = staticPart.input
                         partErrorText = staticPart.errorText
+                      }
+                      
+                      // Skip Context7 tools - they're internal and users don't need to see them
+                      if (isContext7Tool(toolName)) {
+                        return null
                       }
                       
                       const toolInfo = getToolInfo(toolName)
@@ -380,37 +419,30 @@ export default function ClassiaChat() {
             </div>
           ))}
 
-          {/* Enhanced Loading State Overlay */}
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
-              <div className="glassmorphism rounded-2xl p-6 max-w-[80%]">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-primary animate-pulse" />
+          {/* Immediate "Thinking" message when AI starts processing */}
+          {isWaitingForResponse && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] glassmorphism rounded-2xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                    <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">AI is Working</p>
-                    <p className="text-xs text-muted-foreground">Processing your request</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-                    <span>Analyzing your request</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                    <span>Preparing educational content</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
-                    <span>Tools will appear as they're used</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-foreground/90">Thinking</span>
+                    <div className="flex gap-1">
+                      <div className="w-1 h-1 bg-primary rounded-full animate-pulse"></div>
+                      <div className="w-1 h-1 bg-primary rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                      <div className="w-1 h-1 bg-primary rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                    </div>
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground mt-2">{new Date().toLocaleTimeString()}</p>
               </div>
             </div>
           )}
+
+          {/* Invisible element for auto-scrolling to bottom */}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
@@ -421,9 +453,9 @@ export default function ClassiaChat() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Describe what you want to learn..."
               className="!flex min-w-full !max-w-none"
-              disabled={isLoading}
+              disabled={isProcessing}
             />
-            <EtherealButton type="submit" disabled={isLoading || !input.trim()}>
+            <EtherealButton type="submit" disabled={isProcessing || !input.trim()}>
               <Send className="w-4 h-4" />
             </EtherealButton>
           </form>
@@ -470,15 +502,19 @@ export default function ClassiaChat() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {isLoading ? (
+          {isProcessing ? (
             <div className="flex items-center justify-center min-h-full">
               <div className="text-center space-y-6">
                 <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
                   <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">AI is Thinking</h2>
-                  <p className="text-muted-foreground mb-4">Generating educational content...</p>
+                  <h2 className="text-2xl font-semibold mb-2">
+                    {isWaitingForResponse ? "AI is Analyzing" : "AI is Working"}
+                  </h2>
+                  <p className="text-muted-foreground mb-4">
+                    {isWaitingForResponse ? "Understanding your request..." : "Generating educational content..."}
+                  </p>
                   <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
