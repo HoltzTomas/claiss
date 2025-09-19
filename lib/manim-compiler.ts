@@ -9,11 +9,13 @@ import {
 import path from "path";
 import { put } from "@vercel/blob";
 import { compileAnimationWithModal } from "./modal-client-http";
+import { generateSimpleVideoId } from "./simple-video-id";
 
 export interface ManimCompilationResult {
   success: boolean;
   videoPath?: string;
   videoUrl?: string;
+  videoId?: string;
   error?: string;
   logs?: string;
   compilationType?: "modal" | "local";
@@ -97,19 +99,21 @@ async function compileWithModal(
       );
 
       try {
-        // Upload to Vercel Blob with timestamp to ensure uniqueness
-        const timestamp = Date.now();
-        const blob = await put(`videos/latest-${timestamp}.mp4`, buffer, {
+        // Generate simple video ID and upload to Blob
+        const videoId = generateSimpleVideoId();
+        const blob = await put(`videos/${videoId}.mp4`, buffer, {
           access: "public",
           contentType: "video/mp4",
         });
 
         console.log(`[MANIM-COMPILER] ✅ Video uploaded to Blob: ${blob.url}`);
+        console.log(`[MANIM-COMPILER] Video ID: ${videoId}`);
 
         return {
           success: true,
           videoPath: blob.pathname,
           videoUrl: blob.url,
+          videoId: videoId,
           logs: result.logs,
           duration: result.duration,
           compilationType: "modal",
@@ -123,14 +127,17 @@ async function compileWithModal(
         // Fallback to original /tmp approach if Blob fails
         try {
           const { writeFileSync } = await import("fs");
+          const videoId = generateSimpleVideoId();
           writeFileSync("/tmp/latest.mp4", buffer);
 
           console.log(`[MANIM-COMPILER] ✅ Video saved to /tmp as fallback`);
+          console.log(`[MANIM-COMPILER] Video ID: ${videoId} (tmp fallback)`);
 
           return {
             success: true,
             videoPath: "/tmp/latest.mp4",
-            videoUrl: "/api/videos",
+            videoUrl: `/api/videos?id=${videoId}`,
+            videoId: videoId,
             logs: result.logs,
             duration: result.duration,
             compilationType: "modal",
@@ -226,9 +233,9 @@ async function compileWithLocal(
           `[MANIM-COMPILER] 📤 Uploading local video to Vercel Blob... (${videoBuffer.length} bytes)`,
         );
 
-        // Upload to Vercel Blob with timestamp to ensure uniqueness
-        const timestamp = Date.now();
-        const blob = await put(`videos/latest-${timestamp}.mp4`, videoBuffer, {
+        // Generate simple video ID and upload to Blob
+        const videoId = generateSimpleVideoId();
+        const blob = await put(`videos/${videoId}.mp4`, videoBuffer, {
           access: "public",
           contentType: "video/mp4",
         });
@@ -236,11 +243,13 @@ async function compileWithLocal(
         console.log(
           `[MANIM-COMPILER] ✅ Local video uploaded to Blob: ${blob.url}`,
         );
+        console.log(`[MANIM-COMPILER] Video ID: ${videoId}`);
 
         return {
           success: true,
           videoPath: blob.pathname,
           videoUrl: blob.url,
+          videoId: videoId,
           logs: output,
           compilationType: "local",
         };
@@ -253,17 +262,20 @@ async function compileWithLocal(
         // Fallback to original /tmp approach if Blob fails
         try {
           const { readFileSync, copyFileSync } = await import("fs");
+          const videoId = generateSimpleVideoId();
           const videoBuffer = readFileSync(manimOutputPath);
           copyFileSync(manimOutputPath, finalVideoPath);
 
           console.log(
             `[MANIM-COMPILER] ✅ Local video saved to /tmp as fallback`,
           );
+          console.log(`[MANIM-COMPILER] Video ID: ${videoId} (tmp fallback)`);
 
           return {
             success: true,
             videoPath: finalVideoPath,
-            videoUrl: "/api/videos",
+            videoUrl: `/api/videos?id=${videoId}`,
+            videoId: videoId,
             logs: output,
             compilationType: "local",
           };

@@ -124,15 +124,25 @@ export default function ClassiaChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Check for latest video
+  // Check for latest video using stored video ID
   const checkForVideo = async () => {
     try {
+      // Get latest video ID from localStorage
+      const latestVideoId = localStorage.getItem("latestVideoId");
+
+      if (!latestVideoId) {
+        console.log("[FRONTEND] No video ID in localStorage");
+        return false;
+      }
+
       // Add cache busting with timestamp and random number to force browser reload
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(7);
-      const testUrl = `/api/videos?t=${timestamp}&r=${random}`;
+      const testUrl = `/api/videos?id=${latestVideoId}&t=${timestamp}&r=${random}`;
 
-      console.log(`[FRONTEND] Checking video availability: ${testUrl}`);
+      console.log(
+        `[FRONTEND] Checking video availability for ID ${latestVideoId}: ${testUrl}`,
+      );
 
       const response = await fetch(testUrl, {
         method: "HEAD",
@@ -239,15 +249,23 @@ export default function ClassiaChat() {
             result &&
             result.success &&
             result.videoGenerated &&
-            result.videoUrl
+            result.videoId
           ) {
             console.log(
-              `[FRONTEND] ✅ Video URL found directly: ${result.videoUrl}`,
+              `[FRONTEND] ✅ Video ID found directly: ${result.videoId}`,
             );
+
+            // Store the latest video ID in localStorage (replace any previous one)
+            localStorage.setItem("latestVideoId", result.videoId);
+
+            // Build video URL with the video ID
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(7);
+            const videoUrl = `/api/videos?id=${result.videoId}&t=${timestamp}&r=${random}`;
 
             // Set video URL directly from the tool result - no need to poll!
             setHasVideo(true);
-            setVideoUrl(result.videoUrl);
+            setVideoUrl(videoUrl);
             setIsCompilingVideo(false);
             setHasGeneratedCode(true);
           } else if (result && result.success && !result.videoGenerated) {
