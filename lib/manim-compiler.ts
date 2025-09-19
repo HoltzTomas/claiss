@@ -7,7 +7,7 @@ import {
   readdirSync,
 } from "fs";
 import path from "path";
-import { compileAnimationWithModal } from "./modal-client";
+import { compileAnimationWithModal } from "./modal-client-http";
 
 export interface ManimCompilationResult {
   success: boolean;
