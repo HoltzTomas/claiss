@@ -217,11 +217,10 @@ export default function ClassiaChat() {
     scrollToBottom();
   }, [messages]);
 
-  // Monitor for writeCode tool completion and trigger video check
+  // Monitor for writeCode tool completion and extract video URL directly
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "assistant") {
-      // Corregido: Usar 'experimental_attachments' solo si existe, para evitar error de tipo
       const toolParts = lastMessage.parts;
 
       const writeCodeTool = toolParts?.find(
@@ -230,13 +229,53 @@ export default function ClassiaChat() {
       );
 
       if (writeCodeTool) {
-        console.log(
-          "[FRONTEND] writeCode tool completed, starting video check cycle...",
-        );
-        // Start video checking immediately - the function now handles state reset
-        setTimeout(() => {
-          checkVideoWithRetries();
-        }, 100); // Minimal delay to ensure tool completion is processed
+        console.log("[FRONTEND] writeCode tool completed, checking result...");
+
+        try {
+          const result =
+            (writeCodeTool as any).result || (writeCodeTool as any).output;
+
+          if (
+            result &&
+            result.success &&
+            result.videoGenerated &&
+            result.videoUrl
+          ) {
+            console.log(
+              `[FRONTEND] ✅ Video URL found directly: ${result.videoUrl}`,
+            );
+
+            // Set video URL directly from the tool result - no need to poll!
+            setHasVideo(true);
+            setVideoUrl(result.videoUrl);
+            setIsCompilingVideo(false);
+            setHasGeneratedCode(true);
+          } else if (result && result.success && !result.videoGenerated) {
+            console.log(
+              "[FRONTEND] Code written but no video generated (non-Manim code)",
+            );
+            setIsCompilingVideo(false);
+          } else {
+            console.log(
+              "[FRONTEND] Code tool succeeded but no video URL - falling back to polling",
+            );
+            console.log("[FRONTEND] writeCodeTool structure:", writeCodeTool);
+            console.log("[FRONTEND] result structure:", result);
+            // Fallback to polling if direct URL extraction fails
+            setTimeout(() => {
+              checkVideoWithRetries();
+            }, 100);
+          }
+        } catch (error) {
+          console.log(
+            "[FRONTEND] Error parsing writeCode result, falling back to polling:",
+            error,
+          );
+          // Fallback to polling if result parsing fails
+          setTimeout(() => {
+            checkVideoWithRetries();
+          }, 100);
+        }
       }
     }
   }, [messages]);
