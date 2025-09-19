@@ -7,6 +7,7 @@ import {
   readdirSync,
 } from "fs";
 import path from "path";
+import { compileAnimationWithModal } from "./modal-client";
 
 export interface ManimCompilationResult {
   success: boolean;
@@ -72,34 +73,30 @@ export async function compileManimCode(
 }
 
 /**
- * Compile using Modal serverless containers.
+ * Compile using Modal serverless containers (direct call).
  */
 async function compileWithModal(
   pythonCode: string,
   className: string,
 ): Promise<ManimCompilationResult> {
   try {
-    // Call our Modal compilation API endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}/api/manim-compile`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        pythonCode,
-        className,
-        quality: "low_quality",
-      }),
-    });
+    // Direct call to modal-client (no HTTP roundtrip!)
+    const result = await compileAnimationWithModal(
+      pythonCode,
+      className,
+      "low_quality",
+    );
 
-    const result = await response.json();
+    if (result.success && result.video_bytes) {
+      // Save video file directly
+      const { writeFileSync } = await import("fs");
+      const buffer = Buffer.from(result.video_bytes);
+      writeFileSync("/tmp/latest.mp4", buffer);
 
-    if (result.success) {
       return {
         success: true,
         videoPath: "/tmp/latest.mp4",
-        videoUrl: result.videoUrl,
+        videoUrl: "/api/videos",
         logs: result.logs,
         duration: result.duration,
         compilationType: "modal",
@@ -107,7 +104,7 @@ async function compileWithModal(
     } else {
       return {
         success: false,
-        error: result.error,
+        error: result.error || "Modal compilation failed",
         logs: result.logs,
         duration: result.duration,
         compilationType: "modal",
@@ -115,7 +112,7 @@ async function compileWithModal(
     }
   } catch (error) {
     throw new Error(
-      `Modal API call failed: ${error instanceof Error ? error.message : String(error)}`,
+      `Modal compilation failed: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
