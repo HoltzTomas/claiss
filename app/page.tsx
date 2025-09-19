@@ -7,6 +7,7 @@ import { EtherealButton } from "@/components/ethereal-button"
 import { TransparentBadge } from "@/components/transparent-badge"
 import { GlowingInput } from "@/components/glowing-input"
 import { FloatingNav } from "@/components/floating-nav"
+import { ExampleModal } from "@/components/example-modal"
 import { Play, Sparkles, ArrowRight, Eye, Heart, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -14,6 +15,8 @@ import { useState } from "react"
 export default function ClassiaLanding() {
   const router = useRouter()
   const [prompt, setPrompt] = useState("")
+  const [selectedVideo, setSelectedVideo] = useState<any>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleStartCreating = () => {
     router.push("/chat")
@@ -24,6 +27,100 @@ export default function ClassiaLanding() {
       router.push(`/chat?prompt=${encodeURIComponent(prompt)}`)
     }
   }
+
+  const handleVideoClick = (video: any) => {
+    console.log("[v0] Video clicked:", video)
+    setSelectedVideo(video)
+    setIsModalOpen(true)
+    console.log("[v0] Modal opened with video:", video.title)
+  }
+
+  const exampleVideos = [
+    {
+      id: 1,
+      title: "Bubble Sort Algorithm",
+      author: "Satoshi Nakamoto",
+      views: "2.4k",
+      likes: "189",
+      prompt:
+        "Show me how bubble sort works step by step with an array of numbers. Include comparisons, swaps, and explain the time complexity. Make it visual and easy to understand for beginners.",
+      videoUrl: "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_xoyxx35jdn.mp4",
+      duration: "0:20",
+      category: "Algorithm",
+      description:
+        "A comprehensive visualization of the bubble sort algorithm showing how elements bubble up to their correct positions.",
+      videoContent: (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex gap-2">
+            {[64, 34, 25, 12, 22, 11, 90].map((num, i) => (
+              <div
+                key={i}
+                className="w-8 h-16 bg-blue-400/80 rounded flex items-end justify-center text-xs font-bold text-white"
+                style={{ height: `${(num / 90) * 64}px` }}
+              >
+                {num}
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 2,
+      title: "Binary Tree Traversal",
+      author: "Dr. Chen",
+      views: "1.8k",
+      likes: "156",
+      prompt:
+        "Create an animated explanation of binary tree traversal methods: in-order, pre-order, and post-order. Show the tree structure and highlight nodes as they are visited in each traversal method.",
+      videoUrl: "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_vype7cvosnf.mp4",
+      duration: "0:34",
+      category: "Data Structure",
+      description: "Learn the three main binary tree traversal algorithms with clear visual demonstrations.",
+      videoContent: (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 bg-green-400/80 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                8
+              </div>
+              <div className="flex gap-8">
+                <div className="w-6 h-6 bg-green-400/60 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                  3
+                </div>
+                <div className="w-6 h-6 bg-green-400/60 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                  10
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 3,
+      title: "Pendulum Motion",
+      author: "Ms. Johnson",
+      views: "3.1k",
+      likes: "267",
+      prompt:
+        "Demonstrate pendulum motion physics with equations. Show how gravity affects the swing, calculate the period, and explain the relationship between length and frequency. Include energy conservation concepts.",
+      videoUrl: "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_mezrf9yaue9.mp4",
+      duration: "0:21",
+      category: "Physics",
+      description: "Physics simulation showing pendulum motion with mathematical analysis and energy transformations.",
+      videoContent: (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative">
+            <div className="flex flex-col items-center">
+              <div className="w-1 h-16 bg-orange-400/60 origin-top rotate-12"></div>
+              <div className="w-6 h-6 bg-orange-400/80 rounded-full -mt-1"></div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
@@ -53,7 +150,7 @@ export default function ClassiaLanding() {
           </h1>
 
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto text-pretty">
-            Claiss uses AI to create stunning educational videos from simple prompts. Perfect for students and teachers
+            Classia uses AI to create stunning educational videos from simple prompts. Perfect for students and teachers
             who want to visualize complex algorithms and concepts.
           </p>
 
@@ -99,123 +196,56 @@ export default function ClassiaLanding() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Bubble Sort Example */}
-            <GlassCard className="group cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden">
-              <div className="aspect-video bg-gradient-to-br from-blue-500/20 to-purple-500/20 relative overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex gap-2">
-                    {[64, 34, 25, 12, 22, 11, 90].map((num, i) => (
-                      <div
-                        key={i}
-                        className="w-8 h-16 bg-blue-400/80 rounded flex items-end justify-center text-xs font-bold text-white"
-                        style={{ height: `${(num / 90) * 64}px` }}
-                      >
-                        {num}
-                      </div>
-                    ))}
-                  </div>
+            {exampleVideos.map((video) => (
+              <div
+                key={video.id}
+                className="group cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log("[v0] Example clicked:", video.title)
+                  setSelectedVideo(video)
+                  setIsModalOpen(true)
+                  console.log("[v0] Modal state set - isOpen:", true, "video:", video.title)
+                }}
+              >
+                <div className="aspect-video bg-gradient-to-br from-blue-500/20 to-purple-500/20 relative overflow-hidden">
+                  {video.videoContent}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                  <Play className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
                 </div>
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <Play className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2">Bubble Sort Algorithm</h3>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    <span>Prof. Sarah</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-4 h-4" />
-                    <span>2.4k</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-4 h-4" />
-                    <span>189</span>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
-
-            {/* Binary Tree Example */}
-            <GlassCard className="group cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden">
-              <div className="aspect-video bg-gradient-to-br from-green-500/20 to-teal-500/20 relative overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative">
-                    {/* Simple binary tree visualization */}
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-8 h-8 bg-green-400/80 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                        8
-                      </div>
-                      <div className="flex gap-8">
-                        <div className="w-6 h-6 bg-green-400/60 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                          3
-                        </div>
-                        <div className="w-6 h-6 bg-green-400/60 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                          10
-                        </div>
-                      </div>
+                <div className="p-4">
+                  <h3 className="font-semibold mb-2">{video.title}</h3>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <User className="w-4 h-4" />
+                      <span>{video.author}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      <span>{video.views}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Heart className="w-4 h-4" />
+                      <span>{video.likes}</span>
                     </div>
                   </div>
                 </div>
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <Play className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2">Binary Tree Traversal</h3>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    <span>Dr. Chen</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-4 h-4" />
-                    <span>1.8k</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-4 h-4" />
-                    <span>156</span>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
-
-            {/* Physics Simulation Example */}
-            <GlassCard className="group cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden">
-              <div className="aspect-video bg-gradient-to-br from-orange-500/20 to-red-500/20 relative overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative">
-                    {/* Simple pendulum visualization */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-1 h-16 bg-orange-400/60 origin-top rotate-12"></div>
-                      <div className="w-6 h-6 bg-orange-400/80 rounded-full -mt-1"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <Play className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibent mb-2">Pendulum Motion</h3>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    <span>Ms. Johnson</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-4 h-4" />
-                    <span>3.1k</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-4 h-4" />
-                    <span>267</span>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
+            ))}
           </div>
         </div>
       </section>
+
+      <ExampleModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          console.log("[v0] Closing modal")
+          setIsModalOpen(false)
+          setSelectedVideo(null)
+        }}
+        video={selectedVideo}
+      />
     </div>
   )
 }
