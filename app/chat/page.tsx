@@ -108,8 +108,10 @@ export default function ClassiaChat() {
     }),
     onFinish: ({ message }) => {
       console.log("[FRONTEND] AI finished streaming, checking for video...");
-      // Start video checking when AI is done
-      checkVideoWithRetries();
+      // Add small delay to allow video saving to complete
+      setTimeout(() => {
+        checkVideoWithRetries();
+      }, 1000); // 1 second delay
     },
   });
 
@@ -191,6 +193,29 @@ export default function ClassiaChat() {
   // Auto-scroll when messages change (new messages, streaming updates)
   useEffect(() => {
     scrollToBottom();
+  }, [messages]);
+
+  // Monitor for writeCode tool completion and trigger video check
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "assistant") {
+      // Corregido: Usar 'experimental_attachments' solo si existe, para evitar error de tipo
+      const toolParts = lastMessage.parts;
+
+      const writeCodeTool = toolParts?.find(
+        (part: any) =>
+          part.type === "tool-writeCode" && part.state === "output-available",
+      );
+
+      if (writeCodeTool) {
+        console.log(
+          "[FRONTEND] writeCode tool completed, checking for video...",
+        );
+        setTimeout(() => {
+          checkVideoWithRetries();
+        }, 500); // Small delay to ensure video is saved
+      }
+    }
   }, [messages]);
 
   // Auto-scroll when status changes (especially when user sends message)
