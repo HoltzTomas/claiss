@@ -4,7 +4,7 @@ This document explains how to set up and deploy the Modal-based Manim compilatio
 
 ## Overview
 
-The Modal integration allows Classia to compile Manim animations in serverless containers, solving the production deployment problem where Manim, LaTeX, and other dependencies are not available.
+The Modal integration allows Claiss to compile Manim animations in serverless containers, solving the production deployment problem where Manim, LaTeX, and other dependencies are not available.
 
 ## Benefits
 

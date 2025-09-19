@@ -53,7 +53,7 @@ export default function ClassiaLanding() {
           </h1>
 
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto text-pretty">
-            Classia uses AI to create stunning educational videos from simple prompts. Perfect for students and teachers
+            Claiss uses AI to create stunning educational videos from simple prompts. Perfect for students and teachers
             who want to visualize complex algorithms and concepts.
           </p>
 

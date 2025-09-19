@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated to Classia educational theme with glassmorphism */
+  /* Updated to Claiss educational theme with glassmorphism */
   --background: oklch(0.075 0 0); /* Dark background for glassmorphism */
   --foreground: oklch(0.985 0 0); /* White for text */
   --card: oklch(0.118 0 0 / 0.6); /* Enhanced glassmorphism transparency */

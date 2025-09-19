@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: anthropic('claude-3-5-sonnet-20241022'),
       // toolCallStreaming is enabled by default in AI SDK v5
-      system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
+      system: `You are Claiss AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 IMPORTANT: You have access to code and script management tools. NEVER include Python code in your text responses. Always use the writeCode tool for code and writeScript tool for educational narration.
 
@@ -244,7 +244,7 @@ NEVER include Python code in your text responses - only use the writeCode tool f
     const result = streamText({
       model: anthropic('claude-3-haiku-20240307'),
       // toolCallStreaming is enabled by default in AI SDK v5
-      system: `You are Classia AI, an educational Python code generator specialized in creating Manim animations for learning.
+      system: `You are Claiss AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.
 

@@ -399,7 +399,7 @@ export default function ClassiaChat() {
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">Classia AI</h1>
+              <h1 className="text-xl font-semibold">Claiss AI</h1>
               <p className="text-sm text-muted-foreground">
                 Educational Video Generator
               </p>

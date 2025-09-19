@@ -16,7 +16,7 @@ export function FloatingNav() {
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="text-foreground font-semibold">Classia</span>
+            <span className="text-foreground font-semibold">Claiss</span>
           </div>
 
           <div className="hidden md:flex items-center gap-8">
