@@ -80,7 +80,8 @@ async function compileWithModal(
 ): Promise<ManimCompilationResult> {
   try {
     // Call our Modal compilation API endpoint
-    const response = await fetch("/api/manim-compile", {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const response = await fetch(`${baseUrl}/api/manim-compile`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
