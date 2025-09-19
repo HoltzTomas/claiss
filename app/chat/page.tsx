@@ -107,11 +107,9 @@ export default function ClassiaChat() {
       api: "/api/video-generator",
     }),
     onFinish: ({ message }) => {
-      console.log("[FRONTEND] AI finished streaming, checking for video...");
-      // Add small delay to allow video saving to complete
-      setTimeout(() => {
-        checkVideoWithRetries();
-      }, 1000); // 1 second delay
+      console.log("[FRONTEND] AI finished streaming");
+      // Video checking is now handled by writeCode tool completion monitoring
+      // This provides more precise timing than waiting for message finish
     },
   });
 
@@ -129,55 +127,79 @@ export default function ClassiaChat() {
   // Check for latest video
   const checkForVideo = async () => {
     try {
-      // Add cache busting with timestamp to force browser reload
+      // Add cache busting with timestamp and random number to force browser reload
       const timestamp = Date.now();
-      const testUrl = `/api/videos?t=${timestamp}`;
-      const response = await fetch(testUrl, { method: "HEAD" });
+      const random = Math.random().toString(36).substring(7);
+      const testUrl = `/api/videos?t=${timestamp}&r=${random}`;
+
+      console.log(`[FRONTEND] Checking video availability: ${testUrl}`);
+
+      const response = await fetch(testUrl, {
+        method: "HEAD",
+        cache: "no-cache",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      });
+
       if (response.ok) {
+        const contentLength = response.headers.get("content-length");
+        console.log(`[FRONTEND] Video found! Size: ${contentLength} bytes`);
+
         setHasVideo(true);
         setVideoUrl(testUrl);
         setIsCompilingVideo(false);
-        console.log(
-          `[FRONTEND] Video URL updated with cache busting: ${testUrl}`,
-        );
+
         return true;
       } else if (response.status === 416) {
         // File exists but still being written (Range Not Satisfiable) - keep polling
+        console.log("[FRONTEND] Video file exists but still being written...");
         return false;
       } else {
-        setHasVideo(false);
-        setVideoUrl("");
+        console.log(`[FRONTEND] Video not found (status: ${response.status})`);
         return false;
       }
     } catch (error) {
-      setHasVideo(false);
-      setVideoUrl("");
+      console.log(`[FRONTEND] Error checking video:`, error);
       return false;
     }
   };
 
   // Smart video checking with retries instead of continuous polling
-  const checkVideoWithRetries = async (attempt = 1, maxAttempts = 10) => {
-    setIsCompilingVideo(true);
-    console.log(`[FRONTEND] Checking for video... attempt ${attempt}`);
+  const checkVideoWithRetries = async (attempt = 1, maxAttempts = 12) => {
+    // Reset video state before starting if this is the first attempt
+    if (attempt === 1) {
+      console.log("[FRONTEND] Starting fresh video check cycle");
+      setIsCompilingVideo(true);
+      setHasVideo(false);
+      setVideoUrl("");
+    }
+
+    console.log(
+      `[FRONTEND] Checking for video... attempt ${attempt}/${maxAttempts}`,
+    );
 
     const found = await checkForVideo();
 
     if (found) {
       setHasGeneratedCode(true);
       setIsCompilingVideo(false);
-      console.log("[FRONTEND] ✅ Video found!");
+      console.log("[FRONTEND] ✅ Video found and loaded!");
       return;
     }
 
     if (attempt >= maxAttempts) {
       setIsCompilingVideo(false);
       console.log("[FRONTEND] ❌ Max attempts reached, video not found");
+      // Don't reset hasVideo state here in case there was a previous video
       return;
     }
 
-    // Wait with exponential backoff: 1s, 2s, 4s, 6s, 8s, 10s...
-    const delay = Math.min(attempt * 2000, 10000);
+    // Progressive backoff: 500ms, 1s, 2s, 3s, 5s, 7s, 10s, 10s...
+    const delays = [500, 1000, 2000, 3000, 5000, 7000, 10000];
+    const delay = delays[Math.min(attempt - 1, delays.length - 1)] || 10000;
+
     console.log(`[FRONTEND] Waiting ${delay}ms before next attempt...`);
 
     setTimeout(() => {
@@ -209,11 +231,12 @@ export default function ClassiaChat() {
 
       if (writeCodeTool) {
         console.log(
-          "[FRONTEND] writeCode tool completed, checking for video...",
+          "[FRONTEND] writeCode tool completed, starting video check cycle...",
         );
+        // Start video checking immediately - the function now handles state reset
         setTimeout(() => {
           checkVideoWithRetries();
-        }, 500); // Small delay to ensure video is saved
+        }, 100); // Minimal delay to ensure tool completion is processed
       }
     }
   }, [messages]);
@@ -642,20 +665,18 @@ export default function ClassiaChat() {
                   <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">
-                    Compiling Animation
-                  </h2>
+                  <h2 className="text-2xl font-semibold mb-2">Loading Video</h2>
                   <p className="text-muted-foreground mb-4">
-                    Creating your educational video...
+                    Checking for your newly generated video...
                   </p>
                   <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Film className="w-4 h-4" />
-                      <span>Manim Rendering</span>
+                      <Search className="w-4 h-4" />
+                      <span>Video Detection</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      <span>~15 seconds</span>
+                      <span>~30 seconds</span>
                     </div>
                   </div>
                 </div>
