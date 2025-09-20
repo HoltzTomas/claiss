@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
-import { X, Copy, Play } from "lucide-react"
+import { useEffect, useState } from "react"
+import { X, Copy } from "lucide-react"
 
 interface ExampleVideo {
   title: string
@@ -19,6 +19,8 @@ interface ExampleModalProps {
 
 export function ExampleModal({ video, isOpen, onClose }: ExampleModalProps) {
   console.log("[v0] ExampleModal render - isOpen:", isOpen, "video:", video)
+
+  const [isCopied, setIsCopied] = useState(false)
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -45,6 +47,8 @@ export function ExampleModal({ video, isOpen, onClose }: ExampleModalProps) {
 
   const copyPrompt = () => {
     navigator.clipboard.writeText(video.prompt)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 2000)
   }
 
   return (
@@ -92,15 +96,14 @@ export function ExampleModal({ video, isOpen, onClose }: ExampleModalProps) {
               <div className="flex gap-3">
                 <button
                   onClick={copyPrompt}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors"
+                  className={`flex items-center gap-2 px-4 py-2 border border-white/20 rounded-lg transition-all duration-200 transform ${
+                    isCopied
+                      ? "bg-green-500/20 border-green-400/40 scale-95 text-green-300"
+                      : "bg-white/10 hover:bg-white/20 hover:scale-105 text-white"
+                  }`}
                 >
-                  <Copy className="w-4 h-4 text-white" />
-                  <span className="text-white font-medium">Copy Prompt</span>
-                </button>
-
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors">
-                  <Play className="w-4 h-4 text-white" />
-                  <span className="text-white font-medium">Create Similar</span>
+                  <Copy className={`w-4 h-4 ${isCopied ? "text-green-300" : "text-white"}`} />
+                  <span className="font-medium">{isCopied ? "Copied!" : "Copy Prompt"}</span>
                 </button>
               </div>
             </div>

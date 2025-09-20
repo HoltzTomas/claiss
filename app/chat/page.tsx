@@ -5,6 +5,7 @@ import type React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { useSearchParams } from "next/navigation";
 import { EtherealButton } from "@/components/ethereal-button";
 import { GlowingInput } from "@/components/glowing-input";
 import { VideoPlayer } from "@/components/video-player";
@@ -81,11 +82,14 @@ const getStateMessage = (state: string, toolName: string) => {
 };
 
 export default function ClassiaChat() {
+  const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [hasVideo, setHasVideo] = useState(false);
 
   // Ref for auto-scrolling to latest message
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Ref to track if initial message has been sent (prevents React StrictMode double execution)
+  const hasInitialMessageSent = useRef(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [isCompilingVideo, setIsCompilingVideo] = useState(false);
   const [activeTab, setActiveTab] = useState<"video" | "code" | "script">(
@@ -118,6 +122,29 @@ export default function ClassiaChat() {
   const isWaitingForResponse = status === "submitted";
   const isReceivingResponse = status === "streaming";
   const isLoading = isProcessing; // Keep for backward compatibility
+
+  // Handle URL prompt parameter on mount
+  useEffect(() => {
+    const promptParam = searchParams.get("prompt");
+    if (
+      promptParam &&
+      !hasInitialMessageSent.current &&
+      messages.length === 0 &&
+      !isProcessing
+    ) {
+      console.log(
+        "[FRONTEND] Found prompt parameter, sending message:",
+        promptParam,
+      );
+      hasInitialMessageSent.current = true;
+      sendMessage({ text: promptParam });
+
+      // Clear the URL parameter to avoid re-sending on refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete("prompt");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams, messages.length, isProcessing, sendMessage]);
 
   // Auto-scroll function
   const scrollToBottom = () => {

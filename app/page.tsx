@@ -1,39 +1,47 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { GlassCard } from "@/components/glass-card"
-import { EtherealButton } from "@/components/ethereal-button"
-import { TransparentBadge } from "@/components/transparent-badge"
-import { GlowingInput } from "@/components/glowing-input"
-import { FloatingNav } from "@/components/floating-nav"
-import { ExampleModal } from "@/components/example-modal"
-import { Play, Sparkles, ArrowRight, Eye, Heart, User } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { GlassCard } from "@/components/glass-card";
+import { EtherealButton } from "@/components/ethereal-button";
+import { TransparentBadge } from "@/components/transparent-badge";
+import { GlowingInput } from "@/components/glowing-input";
+import { FloatingNav } from "@/components/floating-nav";
+import { ExampleModal } from "@/components/example-modal";
+import { Play, Sparkles, ArrowRight, Eye, Heart, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function ClassiaLanding() {
-  const router = useRouter()
-  const [prompt, setPrompt] = useState("")
-  const [selectedVideo, setSelectedVideo] = useState<any>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter();
+  const [prompt, setPrompt] = useState("");
+  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleStartCreating = () => {
-    router.push("/chat")
-  }
+    router.push("/chat");
+  };
 
   const handlePromptSubmit = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && prompt.trim()) {
-      router.push(`/chat?prompt=${encodeURIComponent(prompt)}`)
+      router.push(`/chat?prompt=${encodeURIComponent(prompt)}`);
     }
-  }
+  };
 
   const handleVideoClick = (video: any) => {
-    console.log("[v0] Video clicked:", video)
-    setSelectedVideo(video)
-    setIsModalOpen(true)
-    console.log("[v0] Modal opened with video:", video.title)
-  }
+    console.log("[v0] Video clicked:", video);
+    setSelectedVideo(video);
+    setIsModalOpen(true);
+    console.log("[v0] Modal opened with video:", video.title);
+  };
+
+  const handleWatchDemo = () => {
+    // Show the bubble sort example (first video in exampleVideos)
+    const bubbleSortVideo = exampleVideos[0]; // Bubble Sort Algorithm
+    console.log("[v0] Watch Demo clicked, showing:", bubbleSortVideo.title);
+    setSelectedVideo(bubbleSortVideo);
+    setIsModalOpen(true);
+  };
 
   const exampleVideos = [
     {
@@ -44,7 +52,8 @@ export default function ClassiaLanding() {
       likes: "189",
       prompt:
         "Show me how bubble sort works step by step with an array of numbers. Include comparisons, swaps, and explain the time complexity. Make it visual and easy to understand for beginners.",
-      videoUrl: "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_xoyxx35jdn.mp4",
+      videoUrl:
+        "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_xoyxx35jdn.mp4",
       duration: "0:20",
       category: "Algorithm",
       description:
@@ -73,10 +82,12 @@ export default function ClassiaLanding() {
       likes: "156",
       prompt:
         "Create an animated explanation of binary tree traversal methods: in-order, pre-order, and post-order. Show the tree structure and highlight nodes as they are visited in each traversal method.",
-      videoUrl: "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_vype7cvosnf.mp4",
+      videoUrl:
+        "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_vype7cvosnf.mp4",
       duration: "0:34",
       category: "Data Structure",
-      description: "Learn the three main binary tree traversal algorithms with clear visual demonstrations.",
+      description:
+        "Learn the three main binary tree traversal algorithms with clear visual demonstrations.",
       videoContent: (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
@@ -105,10 +116,12 @@ export default function ClassiaLanding() {
       likes: "267",
       prompt:
         "Demonstrate pendulum motion physics with equations. Show how gravity affects the swing, calculate the period, and explain the relationship between length and frequency. Include energy conservation concepts.",
-      videoUrl: "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_mezrf9yaue9.mp4",
+      videoUrl:
+        "https://jk7phfqta32ikgyg.public.blob.vercel-storage.com/videos/vid_mezrf9yaue9.mp4",
       duration: "0:21",
       category: "Physics",
-      description: "Physics simulation showing pendulum motion with mathematical analysis and energy transformations.",
+      description:
+        "Physics simulation showing pendulum motion with mathematical analysis and energy transformations.",
       videoContent: (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
@@ -120,7 +133,7 @@ export default function ClassiaLanding() {
         </div>
       ),
     },
-  ]
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
@@ -150,17 +163,22 @@ export default function ClassiaLanding() {
           </h1>
 
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto text-pretty">
-            Classia uses AI to create stunning educational videos from simple prompts. Perfect for students and teachers
-            who want to visualize complex algorithms and concepts.
+            Classia uses AI to create stunning educational videos from simple
+            prompts. Perfect for students and teachers who want to visualize
+            complex algorithms and concepts.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <EtherealButton size="lg" className="group" onClick={handleStartCreating}>
+            <EtherealButton
+              size="lg"
+              className="group"
+              onClick={handleStartCreating}
+            >
               <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
               Start Creating
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </EtherealButton>
-            <EtherealButton variant="ghost" size="lg">
+            <EtherealButton variant="ghost" size="lg" onClick={handleWatchDemo}>
               Watch Demo
             </EtherealButton>
           </div>
@@ -176,7 +194,9 @@ export default function ClassiaLanding() {
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={handlePromptSubmit}
               />
-              <p className="text-xs text-muted-foreground mt-3">Press Enter to generate your educational video</p>
+              <p className="text-xs text-muted-foreground mt-3">
+                Press Enter to generate your educational video
+              </p>
             </GlassCard>
           </div>
         </div>
@@ -187,7 +207,9 @@ export default function ClassiaLanding() {
           <div className="flex justify-between items-center mb-12">
             <div>
               <h2 className="text-3xl font-bold mb-2">From the Community</h2>
-              <p className="text-muted-foreground">Explore what educators are creating with Classia.</p>
+              <p className="text-muted-foreground">
+                Explore what educators are creating with Classia.
+              </p>
             </div>
             <EtherealButton variant="ghost">
               Browse All
@@ -201,12 +223,17 @@ export default function ClassiaLanding() {
                 key={video.id}
                 className="group cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl"
                 onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  console.log("[v0] Example clicked:", video.title)
-                  setSelectedVideo(video)
-                  setIsModalOpen(true)
-                  console.log("[v0] Modal state set - isOpen:", true, "video:", video.title)
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("[v0] Example clicked:", video.title);
+                  setSelectedVideo(video);
+                  setIsModalOpen(true);
+                  console.log(
+                    "[v0] Modal state set - isOpen:",
+                    true,
+                    "video:",
+                    video.title,
+                  );
                 }}
               >
                 <div className="aspect-video bg-gradient-to-br from-blue-500/20 to-purple-500/20 relative overflow-hidden">
@@ -240,12 +267,12 @@ export default function ClassiaLanding() {
       <ExampleModal
         isOpen={isModalOpen}
         onClose={() => {
-          console.log("[v0] Closing modal")
-          setIsModalOpen(false)
-          setSelectedVideo(null)
+          console.log("[v0] Closing modal");
+          setIsModalOpen(false);
+          setSelectedVideo(null);
         }}
         video={selectedVideo}
       />
     </div>
-  )
+  );
 }
