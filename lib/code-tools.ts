@@ -1,18 +1,16 @@
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
 import { tool } from "ai";
 import { z } from "zod";
-import path from "path";
 import { compileManimCode } from "./manim-compiler";
 
 /**
- * Tool for writing Python code to temp file
- * Always overwrites existing code (similar to video approach)
+ * Tool for writing Python code - returns code to frontend for localStorage storage
+ * No longer saves to server files - frontend handles storage with video ID association
  */
 export const writeCodeTool = tool({
   description:
-    "Write or update Python code to the temporary code file. Use this tool whenever you generate or modify Python code for the user.",
+    "Write or update Python code. The code will be returned to the frontend for localStorage storage with video ID association.",
   inputSchema: z.object({
-    code: z.string().describe("The complete Python code to write to the file"),
+    code: z.string().describe("The complete Python code to write"),
     description: z
       .string()
       .nullable()
@@ -20,21 +18,8 @@ export const writeCodeTool = tool({
   }),
   execute: async ({ code, description }) => {
     try {
-      const tempDir = "/tmp";
-      const codePath = path.join(tempDir, "current-code.py");
-
-      console.log("[CODE-TOOL] Writing code to file...");
-
-      // Ensure temp directory exists
-      if (!existsSync(tempDir)) {
-        mkdirSync(tempDir, { recursive: true });
-        console.log("[CODE-TOOL] Created temp directory");
-      }
-
-      // Write code to file (always overwrite)
-      writeFileSync(codePath, code, "utf8");
       console.log(
-        `[CODE-TOOL] ✅ Code written successfully: ${code.length} characters`,
+        `[CODE-TOOL] Processing code for frontend storage: ${code.length} characters`,
       );
 
       // Try to compile Manim code if it's valid (direct validation)
@@ -60,7 +45,8 @@ export const writeCodeTool = tool({
 
             return {
               success: true,
-              message: `Code written and video compiled successfully.${description ? ` Description: ${description}` : ""}`,
+              message: `Code processed and video compiled successfully.${description ? ` Description: ${description}` : ""}`,
+              code: code, // Return code to frontend for localStorage storage
               codeLength: code.length,
               videoGenerated: true,
               videoId: compilationResult.videoId,
@@ -74,7 +60,8 @@ export const writeCodeTool = tool({
 
             return {
               success: true,
-              message: `Code written successfully but video compilation failed: ${compilationResult.error}.${description ? ` Description: ${description}` : ""}`,
+              message: `Code processed successfully but video compilation failed: ${compilationResult.error}.${description ? ` Description: ${description}` : ""}`,
+              code: code, // Return code to frontend for localStorage storage
               codeLength: code.length,
               videoGenerated: false,
               error: compilationResult.error,
@@ -85,7 +72,8 @@ export const writeCodeTool = tool({
 
           return {
             success: true,
-            message: `Code written successfully but unexpected compilation error occurred.${description ? ` Description: ${description}` : ""}`,
+            message: `Code processed successfully but unexpected compilation error occurred.${description ? ` Description: ${description}` : ""}`,
+            code: code, // Return code to frontend for localStorage storage
             codeLength: code.length,
             videoGenerated: false,
             error: error instanceof Error ? error.message : "Unknown error",
@@ -96,7 +84,8 @@ export const writeCodeTool = tool({
 
         return {
           success: true,
-          message: `Code written successfully (non-Manim code).${description ? ` Description: ${description}` : ""}`,
+          message: `Code processed successfully (non-Manim code).${description ? ` Description: ${description}` : ""}`,
+          code: code, // Return code to frontend for localStorage storage
           codeLength: code.length,
           videoGenerated: false,
         };
@@ -106,7 +95,7 @@ export const writeCodeTool = tool({
 
       return {
         success: false,
-        message: `Failed to write code: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to process code: ${error instanceof Error ? error.message : "Unknown error"}`,
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
@@ -114,41 +103,46 @@ export const writeCodeTool = tool({
 });
 
 /**
- * Tool for reading existing Python code from temp file
- * Useful for context awareness when modifying existing code
+ * Tool for reading existing Python code from frontend localStorage
+ * Frontend will provide the code context when calling the LLM for modifications
  */
 export const readCodeTool = tool({
   description:
-    "Read the current Python code from the temporary file. Use this before making modifications to existing code.",
-  inputSchema: z.object({}),
-  execute: async () => {
+    "Read the current Python code that was provided by the frontend. Use this before making modifications to existing code.",
+  inputSchema: z.object({
+    code: z
+      .string()
+      .optional()
+      .describe("The current code provided by the frontend from localStorage"),
+  }),
+  execute: async ({ code }) => {
     try {
-      const codePath = path.join("/tmp", "current-code.py");
-
-      if (existsSync(codePath)) {
-        const existingCode = readFileSync(codePath, "utf8");
+      if (code && code.trim()) {
         console.log(
-          `[CODE-TOOL] 📖 Read existing code: ${existingCode.length} characters`,
+          `[CODE-TOOL] 📖 Received existing code from frontend: ${code.length} characters`,
         );
 
         return {
           success: true,
           hasCode: true,
-          code: existingCode,
-          codeLength: existingCode.length,
+          code: code,
+          codeLength: code.length,
         };
       } else {
-        console.log("[CODE-TOOL] 📖 No existing code file found");
+        console.log("[CODE-TOOL] 📖 No existing code provided by frontend");
 
         return {
           success: true,
           hasCode: false,
           message:
-            "No existing code file found. This will be a new code creation.",
+            "No existing code provided by frontend. This will be a new code creation.",
         };
       }
     } catch (error) {
-      console.error("[CODE-TOOL] ❌ Error reading code:", error);
+      console.error(
+        "[CODE-TOOL] ❌ Error processing code from frontend:",
+        error,
+      );
 
       return {
         success: false,

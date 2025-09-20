@@ -204,17 +204,13 @@ export default function ClassiaLanding() {
 
       <section className="relative py-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-12">
+          <div className="mb-12">
             <div>
               <h2 className="text-3xl font-bold mb-2">From the Community</h2>
               <p className="text-muted-foreground">
                 Explore what educators are creating with Classia.
               </p>
             </div>
-            <EtherealButton variant="ghost">
-              Browse All
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </EtherealButton>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -42,18 +42,6 @@ const getToolInfo = (toolName: string) => {
       return { icon: Code, name: "Generating Code", color: "text-blue-400" };
     case "readCode":
       return { icon: Search, name: "Reading Code", color: "text-cyan-400" };
-    case "writeScript":
-      return {
-        icon: FileText,
-        name: "Writing Script",
-        color: "text-green-400",
-      };
-    case "readScript":
-      return {
-        icon: Search,
-        name: "Reading Script",
-        color: "text-emerald-400",
-      };
     case "get-library-docs":
       return { icon: Search, name: "Thinking", color: "text-purple-400" };
     case "resolve-library-id":
@@ -92,15 +80,61 @@ export default function ClassiaChat() {
   const hasInitialMessageSent = useRef(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [isCompilingVideo, setIsCompilingVideo] = useState(false);
-  const [activeTab, setActiveTab] = useState<"video" | "code" | "script">(
-    "video",
-  );
+  const [activeTab, setActiveTab] = useState<"video" | "code">("video");
   const [hasGeneratedCode, setHasGeneratedCode] = useState(false);
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [isLoadingCode, setIsLoadingCode] = useState(false);
-  const [currentScript, setCurrentScript] = useState<string | null>(null);
-  const [scriptTitle, setScriptTitle] = useState<string | null>(null);
-  const [hasGeneratedScript, setHasGeneratedScript] = useState(false);
+
+  // localStorage code management functions
+  const storeCodeInLocalStorage = (videoId: string, code: string) => {
+    try {
+      localStorage.setItem(`classia-code-${videoId}`, code);
+      localStorage.setItem("classia-latest-code", code);
+      setCurrentCode(code);
+      console.log(
+        `[FRONTEND] Code stored in localStorage for video ${videoId}: ${code.length} characters`,
+      );
+    } catch (error) {
+      console.error("[FRONTEND] Failed to store code in localStorage:", error);
+    }
+  };
+
+  const loadCodeFromLocalStorage = (videoId?: string) => {
+    try {
+      const targetVideoId = videoId || localStorage.getItem("latestVideoId");
+      if (targetVideoId) {
+        const code =
+          localStorage.getItem(`classia-code-${targetVideoId}`) ||
+          localStorage.getItem("classia-latest-code");
+        if (code) {
+          setCurrentCode(code);
+          console.log(
+            `[FRONTEND] Code loaded from localStorage for video ${targetVideoId}: ${code.length} characters`,
+          );
+          return code;
+        }
+      }
+
+      // Fallback to latest code if no video-specific code found
+      const latestCode = localStorage.getItem("classia-latest-code");
+      if (latestCode) {
+        setCurrentCode(latestCode);
+        console.log(
+          `[FRONTEND] Fallback code loaded from localStorage: ${latestCode.length} characters`,
+        );
+        return latestCode;
+      }
+
+      setCurrentCode(null);
+      console.log("[FRONTEND] No code found in localStorage");
+      return null;
+    } catch (error) {
+      console.error("[FRONTEND] Failed to load code from localStorage:", error);
+      setCurrentCode(null);
+      return null;
+    }
+  };
+
   const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<"idle" | "success" | "error">(
     "idle",
@@ -285,6 +319,11 @@ export default function ClassiaChat() {
             // Store the latest video ID in localStorage (replace any previous one)
             localStorage.setItem("latestVideoId", result.videoId);
 
+            // Store the code in localStorage with video ID association
+            if (result.code) {
+              storeCodeInLocalStorage(result.videoId, result.code);
+            }
+
             // Build video URL with the video ID
             const timestamp = Date.now();
             const random = Math.random().toString(36).substring(7);
@@ -299,6 +338,13 @@ export default function ClassiaChat() {
             console.log(
               "[FRONTEND] Code written but no video generated (non-Manim code)",
             );
+
+            // Still store the code even if no video was generated
+            if (result.code) {
+              const fallbackVideoId = `code-${Date.now()}`;
+              storeCodeInLocalStorage(fallbackVideoId, result.code);
+            }
+
             setIsCompilingVideo(false);
           } else {
             console.log(
@@ -332,71 +378,58 @@ export default function ClassiaChat() {
     }
   }, [status]);
 
-  // Fetch current code and script when switching tabs
-  const fetchCurrentCode = async () => {
+  // Load code from localStorage when needed
+  const loadCurrentCode = () => {
     if (isLoadingCode) return;
 
     setIsLoadingCode(true);
     try {
-      const response = await fetch("/api/current-code");
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.log(
-          "[FRONTEND] API returned non-JSON response, likely API not available",
-        );
-        setCurrentCode(null);
-        setCurrentScript(null);
-        setScriptTitle(null);
-        setHasGeneratedScript(false);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.hasCode) {
-        setCurrentCode(data.code);
-        console.log("[FRONTEND] Current code loaded successfully");
-      } else {
-        setCurrentCode(null);
-        console.log("[FRONTEND] No current code found");
-      }
-
-      // Also handle script data from the same API
-      if (data.success && data.hasScript) {
-        setCurrentScript(data.script);
-        setScriptTitle(data.title);
-        setHasGeneratedScript(true);
-        console.log("[FRONTEND] Current script loaded successfully");
-      } else {
-        setCurrentScript(null);
-        setScriptTitle(null);
-        setHasGeneratedScript(false);
-        console.log("[FRONTEND] No current script found");
+      const code = loadCodeFromLocalStorage();
+      if (code) {
+        setHasGeneratedCode(true);
       }
     } catch (error) {
-      console.log("[FRONTEND] API not available, using fallback behavior");
+      console.error("[FRONTEND] Error loading code from localStorage:", error);
       setCurrentCode(null);
-      setCurrentScript(null);
-      setScriptTitle(null);
-      setHasGeneratedScript(false);
     } finally {
       setIsLoadingCode(false);
     }
   };
 
-  // Fetch code when switching to code tab and we have generated code
+  // Load code when switching to code tab or when component mounts
   useEffect(() => {
     if (!currentCode) {
-      fetchCurrentCode();
+      loadCurrentCode();
     }
   }, [activeTab, hasGeneratedCode, currentCode]);
+
+  // Load code on component mount to restore any existing code
+  useEffect(() => {
+    loadCurrentCode();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
-    sendMessage({ text: input });
+    // Check if this might be a modification request and include code context
+    const isModificationRequest =
+      /\b(change|modify|edit|update|adjust|fix|alter|improve|enhance|add|remove)\b/i.test(
+        input,
+      );
+    const currentCode = loadCodeFromLocalStorage();
+
+    const messageData: any = { text: input };
+
+    // Include current code context for modification requests
+    if (isModificationRequest && currentCode) {
+      console.log(
+        "[FRONTEND] Detected modification request, including code context",
+      );
+      messageData.codeContext = currentCode;
+    }
+
+    sendMessage(messageData);
     setInput("");
   };
 
@@ -414,10 +447,10 @@ export default function ClassiaChat() {
 
       if (response.ok) {
         setVoiceStatus("success");
-        // Refresh video, code, and script after voice is added
+        // Refresh video and code after voice is added
         setTimeout(() => {
           checkForVideo();
-          fetchCurrentCode(); // Also refresh code and script content
+          loadCurrentCode(); // Also refresh code content
           setVoiceStatus("idle");
         }, 2000);
       } else {
@@ -700,17 +733,6 @@ export default function ClassiaChat() {
               <Code className="w-4 h-4" />
               Code
             </button>
-            <button
-              onClick={() => setActiveTab("script")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "script"
-                  ? "glassmorphism text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              Script
-            </button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
@@ -791,7 +813,7 @@ export default function ClassiaChat() {
                   {/* Add Voice button temporarily hidden */}
                 </div>
               </div>
-            ) : activeTab === "code" ? (
+            ) : (
               <div className="glassmorphism rounded-lg h-full flex flex-col">
                 <div className="p-4 border-b border-border/50 flex-shrink-0">
                   <div className="flex items-center gap-2">
@@ -826,54 +848,7 @@ export default function ClassiaChat() {
                           No code available
                         </p>
                         <button
-                          onClick={fetchCurrentCode}
-                          className="text-xs text-primary hover:underline mt-2"
-                        >
-                          Try refreshing
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="glassmorphism rounded-lg h-full flex flex-col">
-                <div className="p-4 border-b border-border/50 flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">
-                      Educational Script
-                    </span>
-                    {scriptTitle && (
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {scriptTitle}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="p-4 flex-1 overflow-auto min-h-0">
-                  {isLoadingCode ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        Loading script...
-                      </span>
-                    </div>
-                  ) : currentScript ? (
-                    <div className="text-sm text-foreground/90 leading-relaxed h-full overflow-y-auto whitespace-pre-wrap">
-                      {currentScript}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div className="w-12 h-12 glassmorphism rounded-full flex items-center justify-center mx-auto mb-3">
-                          <FileText className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          No script available
-                        </p>
-                        <button
-                          onClick={fetchCurrentCode}
+                          onClick={loadCurrentCode}
                           className="text-xs text-primary hover:underline mt-2"
                         >
                           Try refreshing
