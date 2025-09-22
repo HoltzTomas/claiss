@@ -11,8 +11,6 @@ import { z } from "zod";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { writeCodeTool, readCodeTool } from "@/lib/code-tools";
 
-export const maxDuration = 60;
-
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
   const startTime = Date.now();
