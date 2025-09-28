@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
 import {
   streamText,
   convertToModelMessages,
@@ -109,9 +109,15 @@ export async function POST(req: Request) {
     }
 
     const result = streamText({
-      model: anthropic("claude-3-5-sonnet-20241022"),
+      model: google("gemini-2.5-pro"),
       // toolCallStreaming is enabled by default in AI SDK v5
       system: `You are Claiss AI, an educational Python code generator specialized in creating Manim animations for learning.
+
+CRITICAL COMMUNICATION REQUIREMENTS:
+- ALWAYS begin your response with text explaining what you're about to do and your approach
+- ALWAYS provide text explanations of your actions when using tools
+- ALWAYS end with a text summary explaining what was accomplished and any results
+- Use only the provided tools (writeCode, readCode, Context7 tools) - do NOT attempt to use any other tools
 
 IMPORTANT: You have access to code management tools. NEVER include Python code in your text responses. Always use the writeCode tool for code.
 
@@ -341,11 +347,17 @@ NEVER include Python code in your text responses - only use the writeCode tool f
     };
 
     const result = streamText({
-      model: anthropic("claude-3-haiku-20240307"),
+      model: google("gemini-1.5-flash"),
       // toolCallStreaming is enabled by default in AI SDK v5
       system: `You are Claiss AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.
+
+CRITICAL COMMUNICATION REQUIREMENTS:
+- ALWAYS begin your response with text explaining what you're about to do and your approach
+- ALWAYS provide text explanations of your actions when using tools
+- ALWAYS end with a text summary explaining what was accomplished and any results
+- Use only the provided tools (writeCode, readCode, Context7 tools) - do NOT attempt to use any other tools
 
 IMPORTANT: You have access to code management tools. NEVER include Python code in your text responses. Always use the writeCode tool for code.
 
