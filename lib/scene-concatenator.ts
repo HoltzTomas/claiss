@@ -8,6 +8,10 @@ import path from 'path';
 import fs from 'fs/promises';
 import { put } from '@vercel/blob';
 import type { Scene } from './scene-types';
+import { configureFfmpeg } from './ffmpeg-config';
+
+// Configure FFmpeg paths (works in dev and production)
+configureFfmpeg();
 
 /**
  * Concatenation options

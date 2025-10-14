@@ -4,6 +4,10 @@ import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
 import fs from 'fs/promises';
 import { getLatestVideo, readCurrentScript, fileExists } from './file-utils';
+import { configureFfmpeg } from './ffmpeg-config';
+
+// Configure FFmpeg paths (works in dev and production)
+configureFfmpeg();
 
 export interface VoicedVideoResult {
   success: boolean;

@@ -112,6 +112,30 @@ export class SceneManager {
   }
 
   /**
+   * Get or create a video for storing scenes
+   */
+  getOrCreateVideo(title: string = 'Untitled Video'): Video {
+    const existing = this.getLatestVideo();
+    if (existing) {
+      return existing;
+    }
+
+    // Create new empty video
+    const video: Video = {
+      id: this.generateId(),
+      title,
+      scenes: [],
+      status: 'draft',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.saveVideo(video);
+    console.log(`[SCENE-MANAGER] Created new video: ${video.id}`);
+    return video;
+  }
+
+  /**
    * Get a specific scene by ID
    */
   getScene(videoId: string, sceneId: string): Scene | null {

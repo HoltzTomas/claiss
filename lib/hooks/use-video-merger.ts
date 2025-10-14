@@ -16,15 +16,40 @@ export function useVideoMerger() {
 
   // Merge scenes into final video
   const mergeScenes = useCallback(async (
-    videoId: string,
-    scenes?: Scene[],
-    options?: MergeOptions
+    videoIdOrScenes: string | Scene[],
+    scenesOrOptions?: Scene[] | MergeOptions,
+    optionsParam?: MergeOptions
   ) => {
     setMerging(true);
     setMergeProgress(0);
     setError(null);
 
     try {
+      // Parse parameters - support both old and new signatures
+      let videoId: string | undefined;
+      let scenes: Scene[] | undefined;
+      let options: MergeOptions | undefined;
+
+      if (typeof videoIdOrScenes === 'string') {
+        // Old signature: mergeScenes(videoId, scenes?, options?)
+        videoId = videoIdOrScenes;
+        if (Array.isArray(scenesOrOptions)) {
+          scenes = scenesOrOptions;
+          options = optionsParam;
+        } else {
+          options = scenesOrOptions;
+        }
+      } else {
+        // New signature: mergeScenes(scenes, options?)
+        scenes = videoIdOrScenes;
+        options = scenesOrOptions as MergeOptions;
+      }
+
+      // Must provide scenes array
+      if (!scenes || !Array.isArray(scenes)) {
+        throw new Error('Scenes array is required');
+      }
+
       const response = await fetch('/api/video-merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

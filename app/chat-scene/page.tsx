@@ -18,17 +18,19 @@ import type { Scene } from "@/lib/scene-types";
 export default function ChatScenePage() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
-  const [activeTab, setActiveTab] = useState<"video" | "scenes" | "code">("scenes");
+  const [activeTab, setActiveTab] = useState<"video" | "scenes" | "code">("video");
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
   const [previewScene, setPreviewScene] = useState<Scene | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasInitialMessageSent = useRef(false);
+  const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
 
   // Scene management hooks
   const {
     video,
     loading: videoLoading,
     error: videoError,
+    loadVideo,
     updateScene,
     deleteScene,
     reorderScene,
@@ -36,6 +38,7 @@ export default function ChatScenePage() {
     updateSceneStatus,
     getCompilationProgress,
     isReadyToMerge,
+    updateFinalVideo,
   } = useSceneManager();
 
   const {
@@ -58,12 +61,15 @@ export default function ChatScenePage() {
     transport: new DefaultChatTransport({
       api: "/api/video-generator-scene",
       body: {
-        videoId: video?.id,
+        videoId: currentVideoId,
         mode: 'scene'
       },
     }),
     onFinish: async ({ message }) => {
       console.log("[CHAT-SCENE] AI finished streaming");
+
+      let hasNewScenes = false;
+      let firstCompiledScene: any = null;
 
       // Check for scene operations in tool results
       if (message.parts) {
@@ -73,34 +79,67 @@ export default function ChatScenePage() {
 
             if (result && result.success) {
               console.log("[CHAT-SCENE] Scene written:", result.sceneName);
+              hasNewScenes = true;
+
+              const sceneData: Partial<Scene> = {
+                id: result.sceneId,
+                name: result.sceneName,
+                code: result.code,
+                status: result.videoGenerated ? 'compiled' as const : 'pending' as const,
+                videoUrl: result.videoUrl,
+                videoId: result.videoId,
+              };
+
+              // Track first compiled scene for auto-preview
+              if (result.videoGenerated && !firstCompiledScene) {
+                firstCompiledScene = sceneData;
+              }
 
               // Update or create scene
               if (result.isNewScene) {
-                createScene({
-                  id: result.sceneId,
-                  name: result.sceneName,
-                  code: result.code,
-                  status: result.videoGenerated ? 'compiled' : 'pending',
-                  videoUrl: result.videoUrl,
-                  videoId: result.videoId,
-                }, result.position || 0);
+                createScene(sceneData as any, result.position || 0);
               } else {
-                updateScene(result.sceneId, {
-                  name: result.sceneName,
-                  code: result.code,
-                  status: result.videoGenerated ? 'compiled' : 'pending',
-                  videoUrl: result.videoUrl,
-                  videoId: result.videoId,
-                });
+                updateScene(result.sceneId, sceneData);
               }
             }
           }
         }
       }
+
+      // After all scenes processed
+      if (hasNewScenes) {
+        console.log("[CHAT-SCENE] New scenes detected, reloading video and switching tabs");
+
+        // Reload video from storage to get latest state
+        setTimeout(async () => {
+          // Reload the video to ensure we have the latest scene statuses
+          const reloadedVideo = await loadVideo();
+          if (reloadedVideo) {
+            console.log("[CHAT-SCENE] Video reloaded with", reloadedVideo.scenes.length, "scenes");
+
+            // Find the first compiled scene from reloaded video
+            const firstCompiled = reloadedVideo.scenes.find((s: Scene) => s.status === 'compiled' && s.videoUrl);
+            if (firstCompiled) {
+              console.log("[CHAT-SCENE] Auto-selecting first compiled scene:", firstCompiled.name);
+              setPreviewScene(firstCompiled);
+            }
+          }
+
+          // Switch to scenes tab
+          setActiveTab('scenes');
+        }, 1000);
+      }
     },
   });
 
   const isProcessing = status === "submitted" || status === "streaming";
+
+  // Sync video ID when video changes
+  useEffect(() => {
+    if (video && video.id !== currentVideoId) {
+      setCurrentVideoId(video.id);
+    }
+  }, [video, currentVideoId]);
 
   // Auto-scroll
   const scrollToBottom = () => {
@@ -180,8 +219,13 @@ export default function ChatScenePage() {
     if (!video) return;
 
     try {
-      const result = await mergeScenes(video.id);
+      const result = await mergeScenes(video.id, video.scenes);
       console.log("[CHAT-SCENE] Video merged:", result.videoUrl);
+
+      // Update video with final URL in localStorage
+      if (result.videoUrl) {
+        updateFinalVideo(result.videoUrl, result.duration);
+      }
 
       // Switch to video tab to show result
       setActiveTab('video');
