@@ -327,7 +327,6 @@ class NewScene(Scene):
     sceneId: string,
     status: Scene['status'],
     videoUrl?: string,
-    videoId?: string,
     error?: string
   ): void {
     const video = this.getVideo(videoId);
