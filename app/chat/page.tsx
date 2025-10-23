@@ -1,163 +1,156 @@
 "use client";
 
-import type React from "react";
-
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useSearchParams } from "next/navigation";
 import { EtherealButton } from "@/components/ethereal-button";
 import { GlowingInput } from "@/components/glowing-input";
-import { VideoPlayer } from "@/components/video-player";
-import {
-  Send,
-  Sparkles,
-  Play,
-  Clock,
-  BookOpen,
-  Film,
-  Video,
-  Code,
-  FileText,
-  Mic,
-  Check,
-  X,
-  Cog,
-  Wrench,
-  Search,
-  Zap,
-  Users,
-} from "lucide-react";
+import { SceneTimeline } from "@/components/scene-timeline";
+import { ScenePreview } from "@/components/scene-preview";
+import { SceneEditModal } from "@/components/scene-edit-modal";
+import { Send, Sparkles, Film, Video, Code, Loader, CheckCircle, Merge } from "lucide-react";
+import { useSceneManager } from "@/lib/hooks/use-scene-manager";
+import { useSceneCompiler } from "@/lib/hooks/use-scene-compiler";
+import { useVideoMerger } from "@/lib/hooks/use-video-merger";
+import type { Scene } from "@/lib/scene-types";
 
-// Helper function to check if tool should be hidden from UI
-const isContext7Tool = (toolName: string) => {
-  const context7Tools = ["get-library-docs", "resolve-library-id"];
-  return context7Tools.includes(toolName);
-};
-
-// Helper function to get tool icon and display name
-const getToolInfo = (toolName: string) => {
-  switch (toolName) {
-    case "writeCode":
-      return { icon: Code, name: "Generating Code", color: "text-blue-400" };
-    case "readCode":
-      return { icon: Search, name: "Reading Code", color: "text-cyan-400" };
-    case "get-library-docs":
-      return { icon: Search, name: "Thinking", color: "text-purple-400" };
-    case "resolve-library-id":
-      return { icon: Code, name: "Researching", color: "text-indigo-400" };
-    default:
-      return { icon: Cog, name: "Processing", color: "text-gray-400" };
-  }
-};
-
-// Helper function to get state message
-const getStateMessage = (state: string, toolName: string) => {
-  const toolInfo = getToolInfo(toolName);
-
-  switch (state) {
-    case "input-streaming":
-      return `Preparing ${toolInfo.name.toLowerCase()}...`;
-    case "input-available":
-      return `${toolInfo.name}...`;
-    case "output-available":
-      return `✅ ${toolInfo.name} completed`;
-    case "output-error":
-      return `❌ ${toolInfo.name} failed`;
-    default:
-      return `${toolInfo.name}...`;
-  }
-};
-
-export default function ClassiaChat() {
+export default function ChatScenePage() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
-  const [hasVideo, setHasVideo] = useState(false);
-
-  // Ref for auto-scrolling to latest message
+  const [activeTab, setActiveTab] = useState<"video" | "scenes" | "code">("video");
+  const [editingScene, setEditingScene] = useState<Scene | null>(null);
+  const [previewScene, setPreviewScene] = useState<Scene | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Ref to track if initial message has been sent (prevents React StrictMode double execution)
   const hasInitialMessageSent = useRef(false);
-  const [videoUrl, setVideoUrl] = useState("");
-  const [isCompilingVideo, setIsCompilingVideo] = useState(false);
-  const [activeTab, setActiveTab] = useState<"video" | "code">("video");
-  const [hasGeneratedCode, setHasGeneratedCode] = useState(false);
-  const [currentCode, setCurrentCode] = useState<string | null>(null);
-  const [isLoadingCode, setIsLoadingCode] = useState(false);
+  const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
 
-  // localStorage code management functions
-  const storeCodeInLocalStorage = (videoId: string, code: string) => {
-    try {
-      localStorage.setItem(`classia-code-${videoId}`, code);
-      localStorage.setItem("classia-latest-code", code);
-      setCurrentCode(code);
-      console.log(
-        `[FRONTEND] Code stored in localStorage for video ${videoId}: ${code.length} characters`,
-      );
-    } catch (error) {
-      console.error("[FRONTEND] Failed to store code in localStorage:", error);
-    }
-  };
+  // Scene management hooks
+  const {
+    video,
+    loading: videoLoading,
+    error: videoError,
+    loadVideo,
+    updateScene,
+    deleteScene,
+    reorderScene,
+    createScene,
+    updateSceneStatus,
+    getCompilationProgress,
+    isReadyToMerge,
+    updateFinalVideo,
+  } = useSceneManager();
 
-  const loadCodeFromLocalStorage = (videoId?: string) => {
-    try {
-      const targetVideoId = videoId || localStorage.getItem("latestVideoId");
-      if (targetVideoId) {
-        const code =
-          localStorage.getItem(`classia-code-${targetVideoId}`) ||
-          localStorage.getItem("classia-latest-code");
-        if (code) {
-          setCurrentCode(code);
-          console.log(
-            `[FRONTEND] Code loaded from localStorage for video ${targetVideoId}: ${code.length} characters`,
-          );
-          return code;
+  const {
+    compileScene,
+    compileScenes,
+    isCompiling,
+    getError: getCompilationError,
+    compilingCount
+  } = useSceneCompiler();
+
+  const {
+    mergeScenes,
+    merging,
+    mergeProgress,
+    error: mergeError
+  } = useVideoMerger();
+
+  // Chat integration
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/video-generator-scene",
+      body: {
+        videoId: currentVideoId,
+        mode: 'scene'
+      },
+    }),
+    onFinish: async ({ message }) => {
+      console.log("[CHAT-SCENE] AI finished streaming");
+
+      let hasNewScenes = false;
+      let firstCompiledScene: any = null;
+
+      // Check for scene operations in tool results
+      if (message.parts) {
+        for (const part of message.parts) {
+          if (part.type === 'tool-writeScene' && (part as any).state === 'output-available') {
+            const result = (part as any).result || (part as any).output;
+
+            if (result && result.success) {
+              console.log("[CHAT-SCENE] Scene written:", result.sceneName);
+              hasNewScenes = true;
+
+              const sceneData: Partial<Scene> = {
+                id: result.sceneId,
+                name: result.sceneName,
+                code: result.code,
+                status: result.videoGenerated ? 'compiled' as const : 'pending' as const,
+                videoUrl: result.videoUrl,
+                videoId: result.videoId,
+              };
+
+              // Track first compiled scene for auto-preview
+              if (result.videoGenerated && !firstCompiledScene) {
+                firstCompiledScene = sceneData;
+              }
+
+              // Update or create scene
+              if (result.isNewScene) {
+                createScene(sceneData as any, result.position || 0);
+              } else {
+                updateScene(result.sceneId, sceneData);
+              }
+            }
+          }
         }
       }
 
-      // Fallback to latest code if no video-specific code found
-      const latestCode = localStorage.getItem("classia-latest-code");
-      if (latestCode) {
-        setCurrentCode(latestCode);
-        console.log(
-          `[FRONTEND] Fallback code loaded from localStorage: ${latestCode.length} characters`,
-        );
-        return latestCode;
+      // After all scenes processed
+      if (hasNewScenes) {
+        console.log("[CHAT-SCENE] New scenes detected, reloading video and switching tabs");
+
+        // Reload video from storage to get latest state
+        setTimeout(async () => {
+          // Reload the video to ensure we have the latest scene statuses
+          const reloadedVideo = await loadVideo();
+          if (reloadedVideo) {
+            console.log("[CHAT-SCENE] Video reloaded with", reloadedVideo.scenes.length, "scenes");
+
+            // Find the first compiled scene from reloaded video
+            const firstCompiled = reloadedVideo.scenes.find((s: Scene) => s.status === 'compiled' && s.videoUrl);
+            if (firstCompiled) {
+              console.log("[CHAT-SCENE] Auto-selecting first compiled scene:", firstCompiled.name);
+              setPreviewScene(firstCompiled);
+            }
+          }
+
+          // Switch to scenes tab
+          setActiveTab('scenes');
+        }, 1000);
       }
-
-      setCurrentCode(null);
-      console.log("[FRONTEND] No code found in localStorage");
-      return null;
-    } catch (error) {
-      console.error("[FRONTEND] Failed to load code from localStorage:", error);
-      setCurrentCode(null);
-      return null;
-    }
-  };
-
-  const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
-  const [voiceStatus, setVoiceStatus] = useState<"idle" | "success" | "error">(
-    "idle",
-  );
-
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/video-generator",
-    }),
-    onFinish: ({ message }) => {
-      console.log("[FRONTEND] AI finished streaming");
-      // Video checking is now handled by writeCode tool completion monitoring
-      // This provides more precise timing than waiting for message finish
     },
   });
 
-  // More granular loading states for better UX
   const isProcessing = status === "submitted" || status === "streaming";
-  const isWaitingForResponse = status === "submitted";
-  const isReceivingResponse = status === "streaming";
-  const isLoading = isProcessing; // Keep for backward compatibility
 
-  // Handle URL prompt parameter on mount
+  // Sync video ID when video changes
+  useEffect(() => {
+    if (video && video.id !== currentVideoId) {
+      setCurrentVideoId(video.id);
+    }
+  }, [video, currentVideoId]);
+
+  // Auto-scroll
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Handle URL prompt parameter
   useEffect(() => {
     const promptParam = searchParams.get("prompt");
     if (
@@ -166,310 +159,88 @@ export default function ClassiaChat() {
       messages.length === 0 &&
       !isProcessing
     ) {
-      console.log(
-        "[FRONTEND] Found prompt parameter, sending message:",
-        promptParam,
-      );
       hasInitialMessageSent.current = true;
       sendMessage({ text: promptParam });
 
-      // Clear the URL parameter to avoid re-sending on refresh
       const url = new URL(window.location.href);
       url.searchParams.delete("prompt");
       window.history.replaceState({}, "", url.toString());
     }
   }, [searchParams, messages.length, isProcessing, sendMessage]);
 
-  // Auto-scroll function
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  // Check for latest video using stored video ID
-  const checkForVideo = async () => {
-    try {
-      // Get latest video ID from localStorage
-      const latestVideoId = localStorage.getItem("latestVideoId");
-
-      if (!latestVideoId) {
-        console.log("[FRONTEND] No video ID in localStorage");
-        return false;
-      }
-
-      // Add cache busting with timestamp and random number to force browser reload
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(7);
-      const testUrl = `/api/videos?id=${latestVideoId}&t=${timestamp}&r=${random}`;
-
-      console.log(
-        `[FRONTEND] Checking video availability for ID ${latestVideoId}: ${testUrl}`,
-      );
-
-      const response = await fetch(testUrl, {
-        method: "HEAD",
-        cache: "no-cache",
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
-      });
-
-      if (response.ok) {
-        const contentLength = response.headers.get("content-length");
-        console.log(`[FRONTEND] Video found! Size: ${contentLength} bytes`);
-
-        setHasVideo(true);
-        setVideoUrl(testUrl);
-        setIsCompilingVideo(false);
-
-        return true;
-      } else if (response.status === 416) {
-        // File exists but still being written (Range Not Satisfiable) - keep polling
-        console.log("[FRONTEND] Video file exists but still being written...");
-        return false;
-      } else {
-        console.log(`[FRONTEND] Video not found (status: ${response.status})`);
-        return false;
-      }
-    } catch (error) {
-      console.log(`[FRONTEND] Error checking video:`, error);
-      return false;
-    }
-  };
-
-  // Smart video checking with retries instead of continuous polling
-  const checkVideoWithRetries = async (attempt = 1, maxAttempts = 12) => {
-    // Reset video state before starting if this is the first attempt
-    if (attempt === 1) {
-      console.log("[FRONTEND] Starting fresh video check cycle");
-      setIsCompilingVideo(true);
-      setHasVideo(false);
-      setVideoUrl("");
-    }
-
-    console.log(
-      `[FRONTEND] Checking for video... attempt ${attempt}/${maxAttempts}`,
-    );
-
-    const found = await checkForVideo();
-
-    if (found) {
-      setHasGeneratedCode(true);
-      setIsCompilingVideo(false);
-      console.log("[FRONTEND] ✅ Video found and loaded!");
-      return;
-    }
-
-    if (attempt >= maxAttempts) {
-      setIsCompilingVideo(false);
-      console.log("[FRONTEND] ❌ Max attempts reached, video not found");
-      // Don't reset hasVideo state here in case there was a previous video
-      return;
-    }
-
-    // Progressive backoff: 500ms, 1s, 2s, 3s, 5s, 7s, 10s, 10s...
-    const delays = [500, 1000, 2000, 3000, 5000, 7000, 10000];
-    const delay = delays[Math.min(attempt - 1, delays.length - 1)] || 10000;
-
-    console.log(`[FRONTEND] Waiting ${delay}ms before next attempt...`);
-
-    setTimeout(() => {
-      checkVideoWithRetries(attempt + 1, maxAttempts);
-    }, delay);
-  };
-
-  // Initial check for video on mount
-  useEffect(() => {
-    checkForVideo();
-  }, []);
-
-  // Auto-scroll when messages change (new messages, streaming updates)
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Monitor for writeCode tool completion and extract video URL directly
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === "assistant") {
-      const toolParts = lastMessage.parts;
-
-      const writeCodeTool = toolParts?.find(
-        (part: any) =>
-          part.type === "tool-writeCode" && part.state === "output-available",
-      );
-
-      if (writeCodeTool) {
-        console.log("[FRONTEND] writeCode tool completed, checking result...");
-
-        try {
-          const result =
-            (writeCodeTool as any).result || (writeCodeTool as any).output;
-
-          if (
-            result &&
-            result.success &&
-            result.videoGenerated &&
-            result.videoId
-          ) {
-            console.log(
-              `[FRONTEND] ✅ Video ID found directly: ${result.videoId}`,
-            );
-
-            // Store the latest video ID in localStorage (replace any previous one)
-            localStorage.setItem("latestVideoId", result.videoId);
-
-            // Store the code in localStorage with video ID association
-            if (result.code) {
-              storeCodeInLocalStorage(result.videoId, result.code);
-            }
-
-            // Build video URL with the video ID
-            const timestamp = Date.now();
-            const random = Math.random().toString(36).substring(7);
-            const videoUrl = `/api/videos?id=${result.videoId}&t=${timestamp}&r=${random}`;
-
-            // Set video URL directly from the tool result - no need to poll!
-            setHasVideo(true);
-            setVideoUrl(videoUrl);
-            setIsCompilingVideo(false);
-            setHasGeneratedCode(true);
-          } else if (result && result.success && !result.videoGenerated) {
-            console.log(
-              "[FRONTEND] Code written but no video generated (non-Manim code)",
-            );
-
-            // Still store the code even if no video was generated
-            if (result.code) {
-              const fallbackVideoId = `code-${Date.now()}`;
-              storeCodeInLocalStorage(fallbackVideoId, result.code);
-            }
-
-            setIsCompilingVideo(false);
-          } else {
-            console.log(
-              "[FRONTEND] Code tool succeeded but no video URL - falling back to polling",
-            );
-            console.log("[FRONTEND] writeCodeTool structure:", writeCodeTool);
-            console.log("[FRONTEND] result structure:", result);
-            // Fallback to polling if direct URL extraction fails
-            setTimeout(() => {
-              checkVideoWithRetries();
-            }, 100);
-          }
-        } catch (error) {
-          console.log(
-            "[FRONTEND] Error parsing writeCode result, falling back to polling:",
-            error,
-          );
-          // Fallback to polling if result parsing fails
-          setTimeout(() => {
-            checkVideoWithRetries();
-          }, 100);
-        }
-      }
-    }
-  }, [messages]);
-
-  // Auto-scroll when status changes (especially when user sends message)
-  useEffect(() => {
-    if (status === "submitted") {
-      scrollToBottom();
-    }
-  }, [status]);
-
-  // Load code from localStorage when needed
-  const loadCurrentCode = () => {
-    if (isLoadingCode) return;
-
-    setIsLoadingCode(true);
-    try {
-      const code = loadCodeFromLocalStorage();
-      if (code) {
-        setHasGeneratedCode(true);
-      }
-    } catch (error) {
-      console.error("[FRONTEND] Error loading code from localStorage:", error);
-      setCurrentCode(null);
-    } finally {
-      setIsLoadingCode(false);
-    }
-  };
-
-  // Load code when switching to code tab or when component mounts
-  useEffect(() => {
-    if (!currentCode) {
-      loadCurrentCode();
-    }
-  }, [activeTab, hasGeneratedCode, currentCode]);
-
-  // Load code on component mount to restore any existing code
-  useEffect(() => {
-    loadCurrentCode();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
-    // Check if this might be a modification request and include code context
-    const isModificationRequest =
-      /\b(change|modify|edit|update|adjust|fix|alter|improve|enhance|add|remove)\b/i.test(
-        input,
-      );
-    const currentCode = loadCodeFromLocalStorage();
-
-    const messageData: any = { text: input };
-
-    // Include current code context for modification requests
-    if (isModificationRequest && currentCode) {
-      console.log(
-        "[FRONTEND] Detected modification request, including code context",
-      );
-      messageData.codeContext = currentCode;
-    }
-
-    sendMessage(messageData);
+    sendMessage({ text: input });
     setInput("");
   };
 
-  const handleAddVoice = async () => {
-    setIsGeneratingVoice(true);
-    setVoiceStatus("idle");
+  const handleSceneEdit = (scene: Scene) => {
+    setEditingScene(scene);
+  };
 
-    try {
-      const response = await fetch("/api/generate-voiced-video", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+  const handleSceneSave = async (updates: Partial<Scene>) => {
+    if (!editingScene) return;
 
-      if (response.ok) {
-        setVoiceStatus("success");
-        // Refresh video and code after voice is added
-        setTimeout(() => {
-          checkForVideo();
-          loadCurrentCode(); // Also refresh code content
-          setVoiceStatus("idle");
-        }, 2000);
-      } else {
-        setVoiceStatus("error");
-        setTimeout(() => setVoiceStatus("idle"), 3000);
+    // Update scene
+    updateScene(editingScene.id, updates);
+
+    // Trigger recompilation if code changed
+    if (updates.code) {
+      const updatedScene = { ...editingScene, ...updates, status: 'pending' as const };
+      try {
+        const result = await compileScene(updatedScene);
+        updateSceneStatus(
+          editingScene.id,
+          'compiled',
+          result.videoUrl,
+          result.videoId
+        );
+      } catch (error) {
+        updateSceneStatus(
+          editingScene.id,
+          'failed',
+          undefined,
+          undefined,
+          error instanceof Error ? error.message : 'Compilation failed'
+        );
       }
-    } catch (error) {
-      console.error("Error generating voice:", error);
-      setVoiceStatus("error");
-      setTimeout(() => setVoiceStatus("idle"), 3000);
-    } finally {
-      setIsGeneratingVoice(false);
     }
   };
+
+  const handleSceneDelete = async (scene: Scene) => {
+    if (confirm(`Delete scene "${scene.name}"?`)) {
+      deleteScene(scene.id);
+    }
+  };
+
+  const handleMergeVideo = async () => {
+    if (!video) return;
+
+    try {
+      const result = await mergeScenes(video.id, video.scenes);
+      console.log("[CHAT-SCENE] Video merged:", result.videoUrl);
+
+      // Update video with final URL in localStorage
+      if (result.videoUrl) {
+        updateFinalVideo(result.videoUrl, result.duration);
+      }
+
+      // Switch to video tab to show result
+      setActiveTab('video');
+    } catch (error) {
+      console.error("[CHAT-SCENE] Merge failed:", error);
+    }
+  };
+
+  const compilationProgress = getCompilationProgress();
+  const readyToMerge = isReadyToMerge();
 
   return (
     <div className="h-screen bg-background text-foreground flex overflow-hidden">
       {/* Chat Sidebar */}
-      <div className="w-1/2 border-r border-border/50 flex flex-col min-h-screen overflow-hidden">
+      <div className="w-1/3 border-r border-border/50 flex flex-col min-h-screen overflow-hidden">
         {/* Chat Header */}
         <div className="p-6 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -477,26 +248,29 @@ export default function ClassiaChat() {
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">Claiss AI</h1>
+              <h1 className="text-xl font-semibold">Claiss AI - Scene Mode</h1>
               <p className="text-sm text-muted-foreground">
-                Educational Video Generator
+                {video ? `${video.scenes.length} scenes` : 'Create new video'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0 relative">
-          {messages.length === 0 && !isLoading && (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
+          {messages.length === 0 && !isProcessing && (
             <div className="text-center py-12">
               <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
-                <Play className="w-8 h-8 text-primary" />
+                <Film className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Start Creating</h3>
-              <p className="text-muted-foreground">
-                Describe what you'd like to learn and I'll create a video for
-                you.
+              <p className="text-muted-foreground text-sm">
+                Describe what you'd like to learn and I'll create a video
+                organized into scenes.
               </p>
+              <div className="mt-4 text-xs text-muted-foreground">
+                💡 Scenes compile independently for faster edits!
+              </div>
             </div>
           )}
 
@@ -506,11 +280,10 @@ export default function ClassiaChat() {
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[80%] ${message.role === "user" ? "bg-primary/20" : "glassmorphism"} rounded-2xl p-4`}
+                className={`max-w-[85%] ${message.role === "user" ? "bg-primary/20" : "glassmorphism"} rounded-2xl p-4`}
               >
                 <div className="text-sm space-y-2">
                   {message.parts.map((part, i) => {
-                    // Handle text parts
                     if (part.type === "text") {
                       return (
                         <span key={i} className="block">
@@ -518,128 +291,6 @@ export default function ClassiaChat() {
                         </span>
                       );
                     }
-
-                    // Handle step boundaries - only show if there are visible tools around them
-                    if (part.type === "step-start") {
-                      // Check if there are any visible (non-Context7) tools in this message
-                      const hasVisibleTools = message.parts.some((p) => {
-                        if (
-                          p.type.startsWith("tool-") ||
-                          p.type === "dynamic-tool"
-                        ) {
-                          const toolName =
-                            p.type === "dynamic-tool"
-                              ? (p as any).toolName
-                              : p.type.replace("tool-", "");
-                          return !isContext7Tool(toolName);
-                        }
-                        return false;
-                      });
-
-                      // Only show step separator if there are visible tools and this isn't the first part
-                      return i > 0 && hasVisibleTools ? (
-                        <div key={i} className="py-2">
-                          <div className="h-px bg-border"></div>
-                        </div>
-                      ) : null;
-                    }
-
-                    // Handle tool calls with different states
-                    if (
-                      part.type.startsWith("tool-") ||
-                      part.type === "dynamic-tool"
-                    ) {
-                      // Handle different tool part types
-                      let toolName: string;
-                      let partState: string = "call";
-                      let partInput: any = null;
-                      let partErrorText: string | null = null;
-
-                      if (part.type === "dynamic-tool") {
-                        // Dynamic tool part
-                        const dynamicPart = part as any;
-                        toolName = dynamicPart.toolName || "unknown";
-                        partState = dynamicPart.state || "call";
-                        partInput = dynamicPart.input;
-                        partErrorText = dynamicPart.errorText;
-                      } else {
-                        // Static tool part (tool-writeCode, tool-readCode, etc.)
-                        toolName = part.type.replace("tool-", "");
-                        const staticPart = part as any;
-                        partState = staticPart.state || "call";
-                        partInput = staticPart.input;
-                        partErrorText = staticPart.errorText;
-                      }
-
-                      const toolInfo = getToolInfo(toolName);
-                      const Icon = toolInfo.icon;
-                      const stateMessage = getStateMessage(partState, toolName);
-
-                      return (
-                        <div
-                          key={i}
-                          className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/30"
-                        >
-                          <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                              partState === "output-available"
-                                ? "bg-green-500/20"
-                                : partState === "output-error"
-                                  ? "bg-red-500/20"
-                                  : "bg-primary/20"
-                            }`}
-                          >
-                            {partState === "output-available" ? (
-                              <Check className="w-3 h-3 text-green-400" />
-                            ) : partState === "output-error" ? (
-                              <X className="w-3 h-3 text-red-400" />
-                            ) : partState === "input-streaming" ||
-                              partState === "input-available" ? (
-                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <Icon className={`w-3 h-3 ${toolInfo.color}`} />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-foreground/90">
-                              {stateMessage}
-                            </p>
-
-                            {/* Show input details for some states */}
-                            {(partState === "input-streaming" ||
-                              partState === "input-available") &&
-                              partInput && (
-                                <p className="text-xs text-muted-foreground mt-1 truncate">
-                                  {typeof partInput === "string"
-                                    ? partInput
-                                    : JSON.stringify(partInput).slice(0, 50) +
-                                      "..."}
-                                </p>
-                              )}
-
-                            {/* Show error details */}
-                            {partState === "output-error" && partErrorText && (
-                              <p className="text-xs text-red-400 mt-1">
-                                {partErrorText}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Show timing information */}
-                          <div className="text-xs text-muted-foreground">
-                            {partState === "output-available" ? (
-                              <span className="text-green-400">✓</span>
-                            ) : partState === "output-error" ? (
-                              <span className="text-red-400">✗</span>
-                            ) : (
-                              <div className="w-2 h-2 bg-primary/50 rounded-full animate-pulse"></div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-
                     return null;
                   })}
                 </div>
@@ -650,50 +301,27 @@ export default function ClassiaChat() {
             </div>
           ))}
 
-          {/* Immediate "Thinking" message when AI starts processing */}
-          {isWaitingForResponse && (
+          {isProcessing && (
             <div className="flex justify-start">
-              <div className="max-w-[80%] glassmorphism rounded-2xl p-4">
+              <div className="max-w-[85%] glassmorphism rounded-2xl p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-foreground/90">Thinking</span>
-                    <div className="flex gap-1">
-                      <div className="w-1 h-1 bg-primary rounded-full animate-pulse"></div>
-                      <div
-                        className="w-1 h-1 bg-primary rounded-full animate-pulse"
-                        style={{ animationDelay: "0.2s" }}
-                      ></div>
-                      <div
-                        className="w-1 h-1 bg-primary rounded-full animate-pulse"
-                        style={{ animationDelay: "0.4s" }}
-                      ></div>
-                    </div>
-                  </div>
+                  <Loader className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-sm">Analyzing scenes...</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {new Date().toLocaleTimeString()}
-                </p>
               </div>
             </div>
           )}
 
-          {/* Invisible element for auto-scrolling to bottom */}
           <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
         <div className="p-6 border-t border-border/50 flex-shrink-0">
-          <form
-            onSubmit={handleSubmit}
-            className="flex gap-3 w-full justify-between"
-          >
+          <form onSubmit={handleSubmit} className="flex gap-3">
             <GlowingInput
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe what you want to learn..."
+              placeholder="Describe what you want to create or edit..."
               className="!flex min-w-full !max-w-none"
               disabled={isProcessing}
             />
@@ -707,177 +335,203 @@ export default function ClassiaChat() {
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="w-1/2 flex flex-col h-screen overflow-hidden">
+      {/* Content Area with Tabs */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Tabs */}
         <div className="border-b border-border/50 p-4 flex-shrink-0">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab("video")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "video"
-                  ? "glassmorphism text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              <Video className="w-4 h-4" />
-              Video
-            </button>
-            <button
-              onClick={() => setActiveTab("code")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "code"
-                  ? "glassmorphism text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              <Code className="w-4 h-4" />
-              Code
-            </button>
+          <div className="flex gap-2 items-center justify-between">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab("scenes")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "scenes"
+                    ? "glassmorphism text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <Film className="w-4 h-4" />
+                Scenes ({video?.scenes.length || 0})
+              </button>
+              <button
+                onClick={() => setActiveTab("video")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "video"
+                    ? "glassmorphism text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <Video className="w-4 h-4" />
+                Final Video
+              </button>
+              <button
+                onClick={() => setActiveTab("code")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "code"
+                    ? "glassmorphism text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <Code className="w-4 h-4" />
+                Code
+              </button>
+            </div>
+
+            {/* Merge Button */}
+            {video && activeTab === 'scenes' && (
+              <button
+                onClick={handleMergeVideo}
+                disabled={!readyToMerge || merging}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {merging ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Merging...
+                  </>
+                ) : readyToMerge ? (
+                  <>
+                    <Merge className="w-4 h-4" />
+                    Merge Scenes
+                  </>
+                ) : (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Compiling...
+                  </>
+                )}
+              </button>
+            )}
           </div>
+
+          {/* Compilation Progress */}
+          {video && compilingCount > 0 && (
+            <div className="mt-3 flex items-center gap-3 text-xs">
+              <Loader className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-muted-foreground">
+                Compiling {compilingCount} scene{compilingCount > 1 ? 's' : ''}...
+              </span>
+              <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${compilationProgress.percentage}%` }}
+                />
+              </div>
+              <span className="text-muted-foreground">
+                {Math.round(compilationProgress.percentage)}%
+              </span>
+            </div>
+          )}
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          {isProcessing ? (
-            <div className="flex items-center justify-center min-h-full">
-              <div className="text-center space-y-6">
-                <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
-                  <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">
-                    {isWaitingForResponse ? "AI is Analyzing" : "AI is Working"}
-                  </h2>
-                  <p className="text-muted-foreground mb-4">
-                    {isWaitingForResponse
-                      ? "Understanding your request..."
-                      : "Generating educational content..."}
-                  </p>
-                  <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>~30 seconds</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <BookOpen className="w-4 h-4" />
-                      <span>Educational</span>
-                    </div>
-                  </div>
-                </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === "scenes" && video && (
+            <div className="h-full flex">
+              {/* Scene Timeline */}
+              <div className="w-1/3 border-r border-border/50">
+                <SceneTimeline
+                  scenes={video.scenes}
+                  onSceneClick={setPreviewScene}
+                  onSceneEdit={handleSceneEdit}
+                  onSceneDelete={handleSceneDelete}
+                  onSceneReorder={reorderScene}
+                  onAddScene={(pos) => {
+                    // Open modal to create new scene
+                    console.log('Create scene at position', pos);
+                  }}
+                  currentSceneId={previewScene?.id}
+                />
               </div>
-            </div>
-          ) : isCompilingVideo ? (
-            <div className="flex items-center justify-center min-h-full">
-              <div className="text-center space-y-6">
-                <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
-                  <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">Loading Video</h2>
-                  <p className="text-muted-foreground mb-4">
-                    Checking for your newly generated video...
-                  </p>
-                  <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Search className="w-4 h-4" />
-                      <span>Video Detection</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>~30 seconds</span>
-                    </div>
+
+              {/* Scene Preview */}
+              <div className="flex-1 p-6 flex items-center justify-center">
+                {previewScene ? (
+                  <div className="max-w-3xl w-full">
+                    <h2 className="text-2xl font-semibold mb-4">{previewScene.name}</h2>
+                    <ScenePreview scene={previewScene} />
                   </div>
-                </div>
-              </div>
-            </div>
-          ) : hasVideo ? (
-            activeTab === "video" ? (
-              <div className="flex items-center justify-center min-h-full">
-                <div className="text-center space-y-6">
-                  <div className="text-center mb-6">
+                ) : (
+                  <div className="text-center">
                     <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Film className="w-8 h-8 text-primary" />
+                      <Film className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h2 className="text-2xl font-semibold mb-2">
-                      Latest Animation
-                    </h2>
                     <p className="text-muted-foreground">
-                      Your generated educational video
+                      Select a scene to preview
                     </p>
                   </div>
-                  <VideoPlayer
-                    key={videoUrl}
-                    src={videoUrl}
-                    title="Educational Animation"
-                    className="w-full max-w-2xl"
-                  />
-
-                  {/* Add Voice button temporarily hidden */}
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="glassmorphism rounded-lg h-full flex flex-col">
-                <div className="p-4 border-b border-border/50 flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Code className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">
-                      Generated Python Code
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      manim
-                    </span>
-                  </div>
+            </div>
+          )}
+
+          {activeTab === "video" && (
+            <div className="h-full flex items-center justify-center p-6">
+              {video?.finalVideoUrl ? (
+                <div className="max-w-4xl w-full">
+                  <h2 className="text-2xl font-semibold mb-4">{video.title}</h2>
+                  <video
+                    src={video.finalVideoUrl}
+                    controls
+                    className="w-full rounded-lg shadow-xl"
+                  />
                 </div>
-                <div className="p-4 flex-1 overflow-auto min-h-0">
-                  {isLoadingCode ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        Loading code...
-                      </span>
-                    </div>
-                  ) : currentCode ? (
-                    <pre className="text-xs text-foreground/90 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed h-full overflow-y-auto">
-                      {currentCode}
-                    </pre>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div className="w-12 h-12 glassmorphism rounded-full flex items-center justify-center mx-auto mb-3">
-                          <Code className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          No code available
-                        </p>
-                        <button
-                          onClick={loadCurrentCode}
-                          className="text-xs text-primary hover:underline mt-2"
-                        >
-                          Try refreshing
-                        </button>
-                      </div>
-                    </div>
+              ) : (
+                <div className="text-center">
+                  <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Video className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    No final video yet. Merge scenes to create it.
+                  </p>
+                  {readyToMerge && (
+                    <button
+                      onClick={handleMergeVideo}
+                      className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      <Merge className="w-5 h-5 inline-block mr-2" />
+                      Merge Scenes Now
+                    </button>
                   )}
                 </div>
-              </div>
-            )
-          ) : (
-            <div className="flex items-center justify-center min-h-full">
-              <div className="text-center space-y-6 max-w-md">
-                <div className="w-24 h-24 glassmorphism rounded-full flex items-center justify-center mx-auto">
-                  <Sparkles className="w-12 h-12 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold mb-4">Ready to Learn?</h2>
-                  <p className="text-muted-foreground">
-                    Start a conversation with Classia AI. Ask questions about
-                    educational content, algorithms, mathematical concepts, or
-                    any learning topic.
-                  </p>
-                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "code" && (
+            <div className="h-full overflow-auto p-6">
+              <div className="glassmorphism rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Scene Code</h3>
+                {video?.scenes.map((scene) => (
+                  <div key={scene.id} className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium">{scene.name}</h4>
+                      <button
+                        onClick={() => handleSceneEdit(scene)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                    <pre className="text-xs font-mono bg-muted/20 p-4 rounded-lg overflow-x-auto">
+                      {scene.code}
+                    </pre>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Scene Edit Modal */}
+      {editingScene && (
+        <SceneEditModal
+          scene={editingScene}
+          isOpen={!!editingScene}
+          onClose={() => setEditingScene(null)}
+          onSave={handleSceneSave}
+        />
+      )}
     </div>
   );
 }
