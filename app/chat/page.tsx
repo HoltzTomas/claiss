@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useSearchParams } from "next/navigation";
@@ -16,7 +16,8 @@ import { useSceneCompiler } from "@/lib/hooks/use-scene-compiler";
 import { useVideoMerger } from "@/lib/hooks/use-video-merger";
 import type { Scene } from "@/lib/scene-types";
 
-export default function ChatScenePage() {
+// Component that uses searchParams - must be wrapped in Suspense
+function ChatSceneContent() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [activeTab, setActiveTab] = useState<"video" | "scenes" | "code">("video");
@@ -534,5 +535,21 @@ export default function ChatScenePage() {
         />
       )}
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function ChatScenePage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ChatSceneContent />
+    </Suspense>
   );
 }
