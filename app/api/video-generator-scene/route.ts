@@ -10,8 +10,6 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { sceneTools } from "@/lib/scene-code-tools";
 import { sceneManager } from "@/lib/scene-manager";
 
-export const maxDuration = 60;
-
 export async function POST(req: Request) {
   const { messages, videoId, mode = 'scene' }: { messages: UIMessage[]; videoId?: string; mode?: 'scene' | 'monolithic' } = await req.json();
   const startTime = Date.now();
