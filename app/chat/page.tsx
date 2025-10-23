@@ -9,6 +9,7 @@ import { GlowingInput } from "@/components/glowing-input";
 import { SceneTimeline } from "@/components/scene-timeline";
 import { ScenePreview } from "@/components/scene-preview";
 import { SceneEditModal } from "@/components/scene-edit-modal";
+import { MarkdownMessage } from "@/components/markdown-message";
 import { Send, Sparkles, Film, Video, Code, Loader, CheckCircle, Merge } from "lucide-react";
 import { useSceneManager } from "@/lib/hooks/use-scene-manager";
 import { useSceneCompiler } from "@/lib/hooks/use-scene-compiler";
@@ -286,9 +287,9 @@ export default function ChatScenePage() {
                   {message.parts.map((part, i) => {
                     if (part.type === "text") {
                       return (
-                        <span key={i} className="block">
-                          {part.text}
-                        </span>
+                        <div key={i}>
+                          <MarkdownMessage content={part.text} />
+                        </div>
                       );
                     }
                     return null;

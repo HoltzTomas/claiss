@@ -169,4 +169,45 @@
     background: oklch(0.985 0 0 / 0.08);
     border: 1px solid oklch(0.985 0 0 / 0.15);
   }
+
+  /* Markdown prose styling for chat messages */
+  .prose {
+    @apply text-foreground;
+  }
+
+  .prose :where(code):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground;
+  }
+
+  .prose :where(pre):not(:where([class~="not-prose"] *)) {
+    @apply bg-transparent;
+  }
+
+  .prose :where(a):not(:where([class~="not-prose"] *)) {
+    @apply text-primary no-underline hover:underline;
+  }
+
+  .prose :where(strong):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground font-bold;
+  }
+
+  .prose :where(em):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground;
+  }
+
+  .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+    @apply text-muted-foreground border-primary/30;
+  }
+
+  .prose :where(h1, h2, h3, h4, h5, h6):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground;
+  }
+
+  .prose :where(ul, ol):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground;
+  }
+
+  .prose :where(li):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground;
+  }
 }
