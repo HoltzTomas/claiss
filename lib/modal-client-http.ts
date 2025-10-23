@@ -19,15 +19,31 @@ export interface ModalCompilationRequest {
   quality?: 'low_quality' | 'medium_quality' | 'high_quality';
 }
 
+export interface ModalMergeResult {
+  success: boolean;
+  video_bytes?: Uint8Array;
+  error?: string;
+  duration?: number;
+  scene_count?: number;
+}
+
+export interface ModalMergeRequest {
+  video_urls: string[];
+  add_transitions?: boolean;
+  transition_duration?: number;
+}
+
 /**
- * HTTP-based Modal client for calling remote Manim compilation.
+ * HTTP-based Modal client for calling remote Manim compilation and video merging.
  */
 export class ModalHttpClient {
-  private modalEndpointUrl: string;
+  private modalCompileEndpointUrl: string;
+  private modalMergeEndpointUrl: string;
 
   constructor() {
-    // Modal web endpoint URL from deployment
-    this.modalEndpointUrl = "https://holtztomas--classia-manim-compiler-compile-manim-web-endpoint.modal.run";
+    // Modal web endpoint URLs from deployment
+    this.modalCompileEndpointUrl = "https://holtztomas--classia-manim-compiler-compile-manim-web-endpoint.modal.run";
+    this.modalMergeEndpointUrl = "https://holtztomas--classia-manim-compiler-merge-videos-web-endpoint.modal.run";
   }
 
   /**
@@ -49,7 +65,7 @@ export class ModalHttpClient {
       console.log('[MODAL-CLIENT] Calling Modal HTTP endpoint...');
 
       // Make HTTP POST request to Modal endpoint
-      const response = await fetch(this.modalEndpointUrl, {
+      const response = await fetch(this.modalCompileEndpointUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +131,7 @@ export class ModalHttpClient {
         quality: 'low_quality'
       };
 
-      const response = await fetch(this.modalEndpointUrl, {
+      const response = await fetch(this.modalCompileEndpointUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,6 +156,75 @@ export class ModalHttpClient {
       return {
         healthy: false,
         error: `Health check failed: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Merge multiple scene videos using Modal's FFmpeg endpoint.
+   */
+  async mergeVideos(request: ModalMergeRequest): Promise<ModalMergeResult> {
+    try {
+      console.log(`[MODAL-CLIENT] Starting remote video merge of ${request.video_urls.length} scenes...`);
+      console.log(`[MODAL-CLIENT] Transitions: ${request.add_transitions ? 'enabled' : 'disabled'}`);
+
+      // Prepare request payload
+      const requestPayload = {
+        video_urls: request.video_urls,
+        add_transitions: request.add_transitions || false,
+        transition_duration: request.transition_duration || 0.5
+      };
+
+      console.log('[MODAL-CLIENT] Calling Modal merge endpoint...');
+
+      // Make HTTP POST request to Modal merge endpoint
+      const response = await fetch(this.modalMergeEndpointUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}, text: ${await response.text()}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Convert base64 video bytes back to Uint8Array
+        if (result.video_bytes_base64) {
+          const videoBuffer = Buffer.from(result.video_bytes_base64, 'base64');
+          result.video_bytes = new Uint8Array(videoBuffer);
+          // Clean up the base64 version
+          delete result.video_bytes_base64;
+        }
+
+        console.log(`[MODAL-CLIENT] ✅ Merge successful! Duration: ${result.duration?.toFixed(2)}s`);
+        console.log(`[MODAL-CLIENT] Merged video size: ${result.video_bytes?.length || 0} bytes`);
+
+        return {
+          success: true,
+          video_bytes: result.video_bytes,
+          duration: result.duration,
+          scene_count: result.scene_count
+        };
+      } else {
+        console.error('[MODAL-CLIENT] ❌ Merge failed:', result.error);
+
+        return {
+          success: false,
+          error: result.error || 'Unknown Modal merge error',
+          duration: result.duration
+        };
+      }
+    } catch (error) {
+      console.error('[MODAL-CLIENT] ❌ Modal merge HTTP client error:', error);
+
+      return {
+        success: false,
+        error: `Modal merge HTTP client error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

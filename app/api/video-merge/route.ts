@@ -1,12 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { concatenateScenes, validateScenesForConcatenation } from '@/lib/scene-concatenator';
-import type { ConcatenationOptions } from '@/lib/scene-concatenator';
+import { defaultModalHttpClient } from '@/lib/modal-client-http';
+import { put } from '@vercel/blob';
+import type { Scene } from '@/lib/scene-types';
 
 export const maxDuration = 60;
 
 /**
+ * Validate scenes before merging
+ */
+function validateScenes(scenes: Scene[]): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+
+  // Check all scenes have videos
+  const missingVideos = scenes.filter(s => !s.videoUrl || s.status !== 'compiled');
+  if (missingVideos.length > 0) {
+    issues.push(`${missingVideos.length} scene(s) missing compiled videos`);
+  }
+
+  // Check scenes are properly ordered
+  const orders = scenes.map(s => s.order).sort((a, b) => a - b);
+  const expectedOrders = scenes.map((_, i) => i);
+  if (JSON.stringify(orders) !== JSON.stringify(expectedOrders)) {
+    issues.push('Scene order has gaps or duplicates');
+  }
+
+  return {
+    valid: issues.length === 0,
+    issues
+  };
+}
+
+/**
  * POST /api/video-merge
- * Merge compiled scene videos into final video
+ * Merge compiled scene videos into final video using Modal's FFmpeg
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -24,11 +50,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const scenesToMerge = scenes;
+    const scenesToMerge: Scene[] = scenes;
 
-    // Validate scenes before concatenation
+    // Validate scenes before merging
     console.log(`[VIDEO-MERGE-API] Validating ${scenesToMerge.length} scenes...`);
-    const validation = await validateScenesForConcatenation(scenesToMerge);
+    const validation = validateScenes(scenesToMerge);
 
     if (!validation.valid) {
       return NextResponse.json({
@@ -38,40 +64,64 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Merge scenes
-    console.log(`[VIDEO-MERGE-API] Merging ${scenesToMerge.length} scenes...`);
-    const mergeOptions: ConcatenationOptions = {
-      quality: options.quality || 'low',
-      addTransitions: options.addTransitions || false,
-      transitionDuration: options.transitionDuration || 0.5,
-      format: options.format || 'mp4'
-    };
+    // Filter and sort scenes
+    const validScenes = scenesToMerge
+      .filter(s => s.status === 'compiled' && s.videoUrl)
+      .sort((a, b) => a.order - b.order);
 
-    const result = await concatenateScenes(scenesToMerge, mergeOptions);
+    if (validScenes.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No compiled scenes to merge'
+      }, { status: 400 });
+    }
+
+    // Extract video URLs
+    const videoUrls = validScenes.map(s => s.videoUrl!);
+
+    console.log(`[VIDEO-MERGE-API] Merging ${videoUrls.length} scenes using Modal...`);
+
+    // Call Modal to merge videos
+    const mergeResult = await defaultModalHttpClient.mergeVideos({
+      video_urls: videoUrls,
+      add_transitions: options.addTransitions || false,
+      transition_duration: options.transitionDuration || 0.5
+    });
+
+    if (!mergeResult.success) {
+      console.error(`[VIDEO-MERGE-API] ❌ Modal merge failed:`, mergeResult.error);
+      return NextResponse.json({
+        success: false,
+        error: mergeResult.error || 'Merge failed',
+        duration: `${Date.now() - startTime}ms`
+      }, { status: 500 });
+    }
+
+    // Upload merged video to Vercel Blob
+    console.log(`[VIDEO-MERGE-API] Uploading merged video to Blob...`);
+    const mergedVideoId = videoId || `final-${Date.now()}`;
+
+    // Convert Uint8Array to Buffer for Vercel Blob
+    const videoBuffer = Buffer.from(mergeResult.video_bytes!);
+
+    const blob = await put(`videos/${mergedVideoId}.mp4`, videoBuffer, {
+      access: 'public',
+      contentType: 'video/mp4'
+    });
 
     const duration = Date.now() - startTime;
 
-    if (result.success) {
-      console.log(`[VIDEO-MERGE-API] ✅ Merge completed in ${duration}ms`);
-      console.log(`[VIDEO-MERGE-API] Final video: ${result.videoUrl}`);
+    console.log(`[VIDEO-MERGE-API] ✅ Merge completed in ${duration}ms`);
+    console.log(`[VIDEO-MERGE-API] Final video: ${blob.url}`);
 
-      return NextResponse.json({
-        success: true,
-        videoUrl: result.videoUrl,
-        videoId: result.videoId || videoId,
-        duration: `${duration}ms`,
-        mergeTime: result.duration,
-        sceneCount: scenesToMerge.length
-      });
-    } else {
-      console.error(`[VIDEO-MERGE-API] ❌ Merge failed after ${duration}ms:`, result.error);
-
-      return NextResponse.json({
-        success: false,
-        error: result.error,
-        duration: `${duration}ms`
-      }, { status: 500 });
-    }
+    return NextResponse.json({
+      success: true,
+      videoUrl: blob.url,
+      videoId: mergedVideoId,
+      duration: `${duration}ms`,
+      mergeTime: mergeResult.duration,
+      sceneCount: validScenes.length
+    });
 
   } catch (error) {
     const duration = Date.now() - startTime;
