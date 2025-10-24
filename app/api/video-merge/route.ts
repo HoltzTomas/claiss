@@ -106,7 +106,8 @@ export async function POST(request: NextRequest) {
 
     const blob = await put(`videos/${mergedVideoId}.mp4`, videoBuffer, {
       access: 'public',
-      contentType: 'video/mp4'
+      contentType: 'video/mp4',
+      addRandomSuffix: true // Ensures unique filename for each merge
     });
 
     const duration = Date.now() - startTime;
