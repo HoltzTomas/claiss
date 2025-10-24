@@ -10,7 +10,7 @@ import { SceneTimeline } from "@/components/scene-timeline";
 import { ScenePreview } from "@/components/scene-preview";
 import { SceneEditModal } from "@/components/scene-edit-modal";
 import { MarkdownMessage } from "@/components/markdown-message";
-import { Send, Sparkles, Film, Video, Code, Loader, CheckCircle, Merge } from "lucide-react";
+import { Send, Sparkles, Film, Video, Code, Loader, Merge } from "lucide-react";
 import { useSceneManager } from "@/lib/hooks/use-scene-manager";
 import { useSceneCompiler } from "@/lib/hooks/use-scene-compiler";
 import { useVideoMerger } from "@/lib/hooks/use-video-merger";
@@ -30,8 +30,6 @@ function ChatSceneContent() {
   // Scene management hooks
   const {
     video,
-    loading: videoLoading,
-    error: videoError,
     loadVideo,
     updateScene,
     deleteScene,
@@ -45,17 +43,12 @@ function ChatSceneContent() {
 
   const {
     compileScene,
-    compileScenes,
-    isCompiling,
-    getError: getCompilationError,
     compilingCount
   } = useSceneCompiler();
 
   const {
     mergeScenes,
     merging,
-    mergeProgress,
-    error: mergeError
   } = useVideoMerger();
 
   // Chat integration
@@ -68,8 +61,6 @@ function ChatSceneContent() {
       },
     }),
     onFinish: async ({ message }) => {
-      console.log("[CHAT-SCENE] AI finished streaming");
-
       let hasNewScenes = false;
       let firstCompiledScene: any = null;
 
@@ -80,7 +71,6 @@ function ChatSceneContent() {
             const result = (part as any).result || (part as any).output;
 
             if (result && result.success) {
-              console.log("[CHAT-SCENE] Scene written:", result.sceneName);
               hasNewScenes = true;
 
               const sceneData: Partial<Scene> = {
@@ -110,19 +100,14 @@ function ChatSceneContent() {
 
       // After all scenes processed
       if (hasNewScenes) {
-        console.log("[CHAT-SCENE] New scenes detected, reloading video and switching tabs");
-
         // Reload video from storage to get latest state
         setTimeout(async () => {
           // Reload the video to ensure we have the latest scene statuses
           const reloadedVideo = await loadVideo();
           if (reloadedVideo) {
-            console.log("[CHAT-SCENE] Video reloaded with", reloadedVideo.scenes.length, "scenes");
-
             // Find the first compiled scene from reloaded video
             const firstCompiled = reloadedVideo.scenes.find((s: Scene) => s.status === 'compiled' && s.videoUrl);
             if (firstCompiled) {
-              console.log("[CHAT-SCENE] Auto-selecting first compiled scene:", firstCompiled.name);
               setPreviewScene(firstCompiled);
             }
           }
@@ -222,7 +207,6 @@ function ChatSceneContent() {
 
     try {
       const result = await mergeScenes(video.id, video.scenes);
-      console.log("[CHAT-SCENE] Video merged:", result.videoUrl);
 
       // Update video with final URL in localStorage
       if (result.videoUrl) {
@@ -232,7 +216,7 @@ function ChatSceneContent() {
       // Switch to video tab to show result
       setActiveTab('video');
     } catch (error) {
-      console.error("[CHAT-SCENE] Merge failed:", error);
+      console.error("Video merge failed:", error);
     }
   };
 

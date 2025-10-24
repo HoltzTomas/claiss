@@ -28,17 +28,9 @@ export default function ClassiaLanding() {
     }
   };
 
-  const handleVideoClick = (video: any) => {
-    console.log("[v0] Video clicked:", video);
-    setSelectedVideo(video);
-    setIsModalOpen(true);
-    console.log("[v0] Modal opened with video:", video.title);
-  };
-
   const handleWatchDemo = () => {
     // Show the bubble sort example (first video in exampleVideos)
-    const bubbleSortVideo = exampleVideos[0]; // Bubble Sort Algorithm
-    console.log("[v0] Watch Demo clicked, showing:", bubbleSortVideo.title);
+    const bubbleSortVideo = exampleVideos[0];
     setSelectedVideo(bubbleSortVideo);
     setIsModalOpen(true);
   };
@@ -221,15 +213,8 @@ export default function ClassiaLanding() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("[v0] Example clicked:", video.title);
                   setSelectedVideo(video);
                   setIsModalOpen(true);
-                  console.log(
-                    "[v0] Modal state set - isOpen:",
-                    true,
-                    "video:",
-                    video.title,
-                  );
                 }}
               >
                 <div className="aspect-video bg-gradient-to-br from-blue-500/20 to-purple-500/20 relative overflow-hidden">
@@ -263,7 +248,6 @@ export default function ClassiaLanding() {
       <ExampleModal
         isOpen={isModalOpen}
         onClose={() => {
-          console.log("[v0] Closing modal");
           setIsModalOpen(false);
           setSelectedVideo(null);
         }}
