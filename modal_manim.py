@@ -562,6 +562,165 @@ def compile_manim_web_endpoint(request_data: dict) -> dict:
             "error": f"Web endpoint error: {str(e)}"
         }
 
+def merge_scene_videos_inline(
+    video_urls: list,
+    add_transitions: bool = False,
+    transition_duration: float = 0.5
+) -> dict:
+    """
+    Inline merge function for use within web endpoints.
+    Merges multiple scene videos into a single final video using FFmpeg.
+    """
+    import time
+    import urllib.request
+    start_time = time.time()
+
+    try:
+        print(f"[MODAL-MERGE-INLINE] Starting merge of {len(video_urls)} videos")
+
+        if not video_urls or len(video_urls) == 0:
+            return {
+                "success": False,
+                "error": "No videos provided to merge",
+                "duration": time.time() - start_time
+            }
+
+        # Single video case - just download and return
+        if len(video_urls) == 1:
+            print(f"[MODAL-MERGE-INLINE] Single video, returning as-is")
+            with urllib.request.urlopen(video_urls[0]) as response:
+                video_bytes = response.read()
+
+            return {
+                "success": True,
+                "video_bytes": video_bytes,
+                "duration": time.time() - start_time,
+                "scene_count": 1
+            }
+
+        # Create temporary directory for merge operation
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Download all videos
+            print(f"[MODAL-MERGE-INLINE] Downloading {len(video_urls)} videos...")
+            video_files = []
+
+            for i, url in enumerate(video_urls):
+                video_file = temp_path / f"scene_{i}.mp4"
+                print(f"[MODAL-MERGE-INLINE] Downloading scene {i} from {url}")
+
+                with urllib.request.urlopen(url) as response:
+                    video_data = response.read()
+
+                with open(video_file, 'wb') as f:
+                    f.write(video_data)
+
+                video_files.append(video_file)
+                print(f"[MODAL-MERGE-INLINE] Downloaded scene {i}: {len(video_data)} bytes")
+
+            output_file = temp_path / "merged.mp4"
+
+            if add_transitions:
+                # Merge with crossfade transitions (requires re-encoding)
+                print(f"[MODAL-MERGE-INLINE] Merging with crossfade transitions...")
+
+                # Build filter_complex for crossfade
+                filter_parts = []
+                inputs = " ".join([f"-i {vf}" for vf in video_files])
+
+                # Generate xfade filters
+                current_stream = "[0:v]"
+                for i in range(len(video_files) - 1):
+                    next_stream = f"[{i + 1}:v]"
+                    output_stream = "[v]" if i == len(video_files) - 2 else f"[v{i}]"
+
+                    filter_parts.append(
+                        f"{current_stream}{next_stream}xfade=transition=fade:duration={transition_duration}:offset={i * 10}{output_stream}"
+                    )
+                    current_stream = output_stream
+
+                filter_complex = ";".join(filter_parts)
+
+                cmd = f"ffmpeg {inputs} -filter_complex \"{filter_complex}\" -map \"[v]\" -c:v libx264 -preset medium -crf 23 {output_file}"
+
+            else:
+                # Simple concatenation without re-encoding (faster)
+                print(f"[MODAL-MERGE-INLINE] Merging without transitions (fast concat)...")
+
+                # Create concat list file
+                list_file = temp_path / "concat_list.txt"
+                with open(list_file, 'w') as f:
+                    for video_file in video_files:
+                        f.write(f"file '{video_file}'\n")
+
+                cmd = [
+                    "ffmpeg",
+                    "-f", "concat",
+                    "-safe", "0",
+                    "-i", str(list_file),
+                    "-c", "copy",  # Copy streams without re-encoding
+                    str(output_file)
+                ]
+
+            print(f"[MODAL-MERGE-INLINE] Executing FFmpeg command...")
+
+            # Run FFmpeg
+            result = subprocess.run(
+                cmd if isinstance(cmd, list) else cmd.split(),
+                cwd=temp_path,
+                capture_output=True,
+                text=True,
+                timeout=240
+            )
+
+            if result.returncode != 0:
+                print(f"[MODAL-MERGE-INLINE] FFmpeg stderr: {result.stderr}")
+                return {
+                    "success": False,
+                    "error": f"FFmpeg merge failed: {result.stderr}",
+                    "logs": result.stdout + result.stderr,
+                    "duration": time.time() - start_time
+                }
+
+            # Check output file exists
+            if not output_file.exists():
+                return {
+                    "success": False,
+                    "error": "Merged video file not created",
+                    "logs": result.stdout,
+                    "duration": time.time() - start_time
+                }
+
+            # Read merged video
+            with open(output_file, 'rb') as f:
+                merged_video_bytes = f.read()
+
+            duration = time.time() - start_time
+            print(f"[MODAL-MERGE-INLINE] ✅ Merge completed in {duration:.2f}s")
+            print(f"[MODAL-MERGE-INLINE] Output size: {len(merged_video_bytes)} bytes")
+
+            return {
+                "success": True,
+                "video_bytes": merged_video_bytes,
+                "duration": duration,
+                "scene_count": len(video_urls)
+            }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "error": "FFmpeg merge timed out",
+            "duration": time.time() - start_time
+        }
+    except Exception as e:
+        print(f"[MODAL-MERGE-INLINE] Error: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Merge error: {str(e)}",
+            "duration": time.time() - start_time
+        }
+
 @app.function(
     timeout=300,
     cpu=2.0,
@@ -594,8 +753,8 @@ def merge_videos_web_endpoint(request_data: dict) -> dict:
                 "error": "video_urls array is required"
             }
 
-        # Call the merge function
-        result = merge_scene_videos(
+        # Call the inline merge function
+        result = merge_scene_videos_inline(
             video_urls=video_urls,
             add_transitions=add_transitions,
             transition_duration=transition_duration
