@@ -41,43 +41,9 @@ export async function POST(request: NextRequest) {
     // Use Modal for compilation
     const result = await compileAnimationWithModal(pythonCode, className, quality);
 
-    if (result.success && result.video_bytes) {
-      // Save video to the expected location for the existing video serving API
-      const videoPath = '/tmp/latest.mp4';
+    const compilationFailed = !result.success || !result.video_bytes;
 
-      try {
-        // Convert Uint8Array to Buffer and write to file
-        const buffer = Buffer.from(result.video_bytes);
-        writeFileSync(videoPath, buffer);
-
-        console.log(`[MANIM-COMPILE-API] ✅ Video saved to ${videoPath}`);
-        console.log(`[MANIM-COMPILE-API] Video size: ${buffer.length} bytes`);
-        console.log(`[MANIM-COMPILE-API] Compilation duration: ${result.duration?.toFixed(2)}s`);
-
-        return NextResponse.json({
-          success: true,
-          videoUrl: '/api/videos', // Existing video serving endpoint
-          logs: result.logs,
-          duration: result.duration,
-          compilationType: 'modal'
-        } as ManimCompileResponse);
-
-      } catch (saveError) {
-        console.error('[MANIM-COMPILE-API] ❌ Failed to save video file:', saveError);
-
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Failed to save compiled video: ${saveError instanceof Error ? saveError.message : String(saveError)}`,
-            logs: result.logs,
-            duration: result.duration,
-            compilationType: 'modal'
-          } as ManimCompileResponse,
-          { status: 500 }
-        );
-      }
-
-    } else {
+    if (compilationFailed) {
       console.error('[MANIM-COMPILE-API] ❌ Modal compilation failed:', result.error);
 
       return NextResponse.json(
@@ -92,6 +58,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const videoPath = '/tmp/latest.mp4';
+
+    try {
+      // Convert Uint8Array to Buffer and write to file
+      const buffer = Buffer.from(result.video_bytes!);
+      writeFileSync(videoPath, buffer);
+
+      console.log(`[MANIM-COMPILE-API] ✅ Video saved to ${videoPath}`);
+      console.log(`[MANIM-COMPILE-API] Video size: ${buffer.length} bytes`);
+      console.log(`[MANIM-COMPILE-API] Compilation duration: ${result.duration?.toFixed(2)}s`);
+
+      return NextResponse.json({
+        success: true,
+        videoUrl: '/api/videos', // Existing video serving endpoint
+        logs: result.logs,
+        duration: result.duration,
+        compilationType: 'modal'
+      } as ManimCompileResponse);
+
+    } catch (saveError) {
+      console.error('[MANIM-COMPILE-API] ❌ Failed to save video file:', saveError);
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Failed to save compiled video: ${saveError instanceof Error ? saveError.message : String(saveError)}`,
+          logs: result.logs,
+          duration: result.duration,
+          compilationType: 'modal'
+        } as ManimCompileResponse,
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('[MANIM-COMPILE-API] ❌ API error:', error);
 
