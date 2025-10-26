@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 
 import { GlassCard } from "@/components/glass-card";
 import { EtherealButton } from "@/components/ethereal-button";
@@ -29,7 +28,6 @@ export default function ClassiaLanding() {
   };
 
   const handleWatchDemo = () => {
-    // Show the bubble sort example (first video in exampleVideos)
     const bubbleSortVideo = exampleVideos[0];
     setSelectedVideo(bubbleSortVideo);
     setIsModalOpen(true);
@@ -129,17 +127,13 @@ export default function ClassiaLanding() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
-      {/* Background Effects */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-secondary/20 rounded-full blur-3xl animate-pulse delay-1000" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/10 rounded-full blur-3xl animate-pulse delay-2000" />
       </div>
 
-      {/* Navigation */}
       <FloatingNav />
-
-      {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex justify-center mb-6">
@@ -175,7 +169,6 @@ export default function ClassiaLanding() {
             </EtherealButton>
           </div>
 
-          {/* Demo Input */}
           <div className="max-w-2xl mx-auto">
             <GlassCard className="p-6">
               <p className="text-sm text-muted-foreground mb-4">Try it now:</p>

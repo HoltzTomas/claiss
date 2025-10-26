@@ -24,7 +24,6 @@ export async function POST(req: Request) {
     JSON.stringify(messages, null, 2),
   );
 
-  // Extract code context from the latest user message if available
   let codeContext: string | undefined;
   const latestMessage = messages[messages.length - 1];
   if (latestMessage?.role === "user" && (latestMessage as any).codeContext) {
@@ -41,7 +40,6 @@ export async function POST(req: Request) {
       "[VIDEO-GENERATOR] Step 1: Initializing Context7 MCP client...",
     );
 
-    // Create Context7 MCP client connection using HTTP transport
     const transport = new StreamableHTTPClientTransport(
       new URL("https://mcp.context7.com/mcp"),
       {
@@ -56,14 +54,12 @@ export async function POST(req: Request) {
     mcpClient = await experimental_createMCPClient({ transport });
     console.log("[VIDEO-GENERATOR] ✅ MCP client created successfully");
 
-    // Get tools from Context7 MCP server
     console.log("[VIDEO-GENERATOR] Step 2: Fetching tools from Context7...");
     const context7Tools = await mcpClient.tools();
     console.log(
       `[VIDEO-GENERATOR] ✅ Retrieved ${Object.keys(context7Tools || {}).length} tools from Context7`,
     );
 
-    // Create a context-aware readCode tool if code context is provided
     const contextAwareReadCodeTool = codeContext
       ? tool({
           description:
@@ -81,7 +77,6 @@ export async function POST(req: Request) {
         })
       : readCodeTool;
 
-    // Combine Context7 tools with our code management tools
     const tools = {
       ...context7Tools,
       writeCode: writeCodeTool,
@@ -93,7 +88,6 @@ export async function POST(req: Request) {
 
     console.log("[VIDEO-GENERATOR] Step 3: Starting AI text streaming...");
 
-    // Convert UIMessage[] to ModelMessage[] with error handling
     let convertedMessages;
     try {
       convertedMessages = convertToModelMessages(messages);
@@ -110,7 +104,6 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: google("gemini-2.5-pro"),
-      // toolCallStreaming is enabled by default in AI SDK v5
       system: `You are Claiss AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 CRITICAL COMMUNICATION REQUIREMENTS:
@@ -202,8 +195,8 @@ ALWAYS use Context7 to get the most up-to-date Manim documentation and examples 
 ALWAYS follow the scene organization template for proper content management.
 NEVER include Python code in your text responses - only use the writeCode tool for code.`,
       messages: convertedMessages,
-      tools, // Context7 tools + writeCode + readCode
-      stopWhen: stepCountIs(5), // Enable multi-step tool usage
+      tools,
+      stopWhen: stepCountIs(5),
       onStepFinish: ({ text, toolCalls, toolResults, finishReason, usage }) => {
         console.log(`[VIDEO-GENERATOR] 📋 Step completed:`);
         console.log(`[VIDEO-GENERATOR]   - Reason: ${finishReason}`);
@@ -222,7 +215,6 @@ NEVER include Python code in your text responses - only use the writeCode tool f
           );
         }
 
-        // Log tool calls for debugging
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((call, index) => {
             console.log(
@@ -253,7 +245,6 @@ NEVER include Python code in your text responses - only use the writeCode tool f
           "[VIDEO-GENERATOR] ℹ️  Code generation handled by writeCode tool",
         );
 
-        // Cleanup MCP client when streaming finishes
         if (mcpClient) {
           await mcpClient.close();
           console.log("[VIDEO-GENERATOR] ✅ MCP client closed");
@@ -275,7 +266,6 @@ NEVER include Python code in your text responses - only use the writeCode tool f
           });
         }
 
-        // Cleanup MCP client on error
         if (mcpClient) {
           await mcpClient.close();
           console.log("[VIDEO-GENERATOR] ✅ MCP client closed after error");
@@ -305,7 +295,6 @@ NEVER include Python code in your text responses - only use the writeCode tool f
       "[VIDEO-GENERATOR] 🔄 Falling back to regular streaming without MCP tools...",
     );
 
-    // Convert UIMessage[] to ModelMessage[] for fallback with error handling
     let fallbackConvertedMessages;
     try {
       fallbackConvertedMessages = convertToModelMessages(messages);
@@ -322,7 +311,6 @@ NEVER include Python code in your text responses - only use the writeCode tool f
       );
     }
 
-    // Create a context-aware readCode tool for fallback if code context is provided
     const fallbackContextAwareReadCodeTool = codeContext
       ? tool({
           description:
@@ -340,7 +328,6 @@ NEVER include Python code in your text responses - only use the writeCode tool f
         })
       : readCodeTool;
 
-    // Fallback to regular streaming without MCP tools but with code tools
     const fallbackTools = {
       writeCode: writeCodeTool,
       readCode: fallbackContextAwareReadCodeTool,
@@ -348,7 +335,6 @@ NEVER include Python code in your text responses - only use the writeCode tool f
 
     const result = streamText({
       model: google("gemini-1.5-flash"),
-      // toolCallStreaming is enabled by default in AI SDK v5
       system: `You are Claiss AI, an educational Python code generator specialized in creating Manim animations for learning.
 
 Note: Context7 integration is currently unavailable, so generate educational Manim code based on your training data.

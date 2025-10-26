@@ -38,15 +38,12 @@ export async function POST(request: NextRequest) {
     console.log(`[MANIM-COMPILE-API] Compiling class: ${className}`);
     console.log(`[MANIM-COMPILE-API] Quality: ${quality}`);
 
-    // Use Modal for compilation
     const result = await compileAnimationWithModal(pythonCode, className, quality);
 
     if (result.success && result.video_bytes) {
-      // Save video to the expected location for the existing video serving API
       const videoPath = '/tmp/latest.mp4';
 
       try {
-        // Convert Uint8Array to Buffer and write to file
         const buffer = Buffer.from(result.video_bytes);
         writeFileSync(videoPath, buffer);
 
@@ -56,7 +53,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
           success: true,
-          videoUrl: '/api/videos', // Existing video serving endpoint
+          videoUrl: '/api/videos',
           logs: result.logs,
           duration: result.duration,
           compilationType: 'modal'
@@ -107,7 +104,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Health check endpoint
   try {
     const { defaultModalClient } = await import('@/lib/modal-client');
     const health = await defaultModalClient.healthCheck();
