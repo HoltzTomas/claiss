@@ -1,20 +1,9 @@
-/**
- * Scene manager for handling scene storage and operations
- * Uses localStorage for now, can be upgraded to Vercel KV later
- */
-
 import type { Scene, Video, SceneOperation, SceneMetadata } from './scene-types';
 import { parseManimScenes, createStandaloneScene, detectSceneDependencies } from './scene-parser';
 
-/**
- * Scene manager class for video/scene operations
- */
 export class SceneManager {
   private storagePrefix = 'classia-scene-';
 
-  /**
-   * Create a new video from existing monolithic code
-   */
   createVideoFromCode(
     code: string,
     title: string = 'Untitled Video'
@@ -48,9 +37,6 @@ export class SceneManager {
     return video;
   }
 
-  /**
-   * Get video by ID
-   */
   getVideo(videoId: string): Video | null {
     try {
       const data = localStorage.getItem(`${this.storagePrefix}video-${videoId}`);
@@ -73,9 +59,6 @@ export class SceneManager {
     }
   }
 
-  /**
-   * Save video to storage
-   */
   saveVideo(video: Video): void {
     try {
       video.updatedAt = new Date();
@@ -96,9 +79,6 @@ export class SceneManager {
     }
   }
 
-  /**
-   * Get the latest video
-   */
   getLatestVideo(): Video | null {
     try {
       const latestId = localStorage.getItem(`${this.storagePrefix}latest-video`);
@@ -111,9 +91,6 @@ export class SceneManager {
     }
   }
 
-  /**
-   * Get or create a video for storing scenes
-   */
   getOrCreateVideo(title: string = 'Untitled Video'): Video {
     const existing = this.getLatestVideo();
     if (existing) {
@@ -135,9 +112,6 @@ export class SceneManager {
     return video;
   }
 
-  /**
-   * Get a specific scene by ID
-   */
   getScene(videoId: string, sceneId: string): Scene | null {
     const video = this.getVideo(videoId);
     if (!video) return null;
@@ -145,9 +119,6 @@ export class SceneManager {
     return video.scenes.find(s => s.id === sceneId) || null;
   }
 
-  /**
-   * Apply scene operation to video
-   */
   applyOperation(videoId: string, operation: SceneOperation): Video | null {
     const video = this.getVideo(videoId);
     if (!video) return null;
@@ -174,9 +145,6 @@ export class SceneManager {
     }
   }
 
-  /**
-   * Create a new scene in the video
-   */
   private createScene(
     video: Video,
     sceneData: Partial<Scene>,
@@ -203,9 +171,6 @@ export class SceneManager {
     return video;
   }
 
-  /**
-   * Modify an existing scene
-   */
   private modifyScene(
     video: Video,
     sceneId: string,
@@ -231,9 +196,6 @@ export class SceneManager {
     return video;
   }
 
-  /**
-   * Delete a scene
-   */
   private deleteScene(video: Video, sceneId: string): Video {
     video.scenes = video.scenes.filter(s => s.id !== sceneId);
     this.reorderScenes(video);
@@ -242,9 +204,6 @@ export class SceneManager {
     return video;
   }
 
-  /**
-   * Reorder a scene
-   */
   private reorderScene(
     video: Video,
     sceneId: string,
@@ -261,9 +220,6 @@ export class SceneManager {
     return video;
   }
 
-  /**
-   * Split a scene into two scenes at a point
-   */
   private splitScene(
     video: Video,
     sceneId: string,
@@ -311,18 +267,12 @@ export class SceneManager {
     return video;
   }
 
-  /**
-   * Reorder all scenes by their position
-   */
   private reorderScenes(video: Video): void {
     video.scenes.forEach((scene, index) => {
       scene.order = index;
     });
   }
 
-  /**
-   * Get default scene code template
-   */
   private getDefaultSceneCode(): string {
     return `from manim import *
 
@@ -336,16 +286,10 @@ class NewScene(Scene):
 `;
   }
 
-  /**
-   * Generate a unique ID
-   */
   private generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  /**
-   * Update scene compilation status
-   */
   updateSceneStatus(
     videoId: string,
     sceneId: string,
@@ -369,9 +313,6 @@ class NewScene(Scene):
     this.saveVideo(video);
   }
 
-  /**
-   * Get scenes that need to be compiled
-   */
   getPendingScenes(videoId: string): Scene[] {
     const video = this.getVideo(videoId);
     if (!video) return [];
@@ -379,9 +320,6 @@ class NewScene(Scene):
     return video.scenes.filter(s => s.status === 'pending');
   }
 
-  /**
-   * Check if all scenes are compiled
-   */
   areAllScenesCompiled(videoId: string): boolean {
     const video = this.getVideo(videoId);
     if (!video) return false;
@@ -389,9 +327,6 @@ class NewScene(Scene):
     return video.scenes.every(s => s.status === 'compiled');
   }
 
-  /**
-   * Export video as monolithic code (for backward compatibility)
-   */
   exportToMonolithicCode(videoId: string, className: string = 'Animation'): string {
     const video = this.getVideo(videoId);
     if (!video) return '';
@@ -399,7 +334,6 @@ class NewScene(Scene):
     const sceneCodes = video.scenes
       .sort((a, b) => a.order - b.order)
       .map(scene => {
-        // Extract just the construct body from scene code
         const lines = scene.code.split('\n');
         const constructStart = lines.findIndex(l => l.includes('def construct'));
         const body = lines.slice(constructStart + 1).join('\n');
@@ -418,5 +352,4 @@ ${sceneCodes.join('\n\n')}
   }
 }
 
-// Export singleton instance
 export const sceneManager = new SceneManager();

@@ -16,7 +16,6 @@ import { useSceneCompiler } from "@/lib/hooks/use-scene-compiler";
 import { useVideoMerger } from "@/lib/hooks/use-video-merger";
 import type { Scene } from "@/lib/scene-types";
 
-// Component that uses searchParams - must be wrapped in Suspense
 function ChatSceneContent() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
@@ -27,7 +26,6 @@ function ChatSceneContent() {
   const hasInitialMessageSent = useRef(false);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
 
-  // Scene management hooks
   const {
     video,
     loadVideo,
@@ -51,7 +49,6 @@ function ChatSceneContent() {
     merging,
   } = useVideoMerger();
 
-  // Chat integration
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/video-generator-scene",
@@ -64,7 +61,6 @@ function ChatSceneContent() {
       let hasNewScenes = false;
       let firstCompiledScene: any = null;
 
-      // Check for scene operations in tool results
       if (message.parts) {
         for (const part of message.parts) {
           if (part.type === 'tool-writeScene' && (part as any).state === 'output-available') {
@@ -82,12 +78,10 @@ function ChatSceneContent() {
                 videoId: result.videoId,
               };
 
-              // Track first compiled scene for auto-preview
               if (result.videoGenerated && !firstCompiledScene) {
                 firstCompiledScene = sceneData;
               }
 
-              // Update or create scene
               if (result.isNewScene) {
                 createScene(sceneData as any, result.position || 0);
               } else {
@@ -98,21 +92,16 @@ function ChatSceneContent() {
         }
       }
 
-      // After all scenes processed
       if (hasNewScenes) {
-        // Reload video from storage to get latest state
         setTimeout(async () => {
-          // Reload the video to ensure we have the latest scene statuses
           const reloadedVideo = await loadVideo();
           if (reloadedVideo) {
-            // Find the first compiled scene from reloaded video
             const firstCompiled = reloadedVideo.scenes.find((s: Scene) => s.status === 'compiled' && s.videoUrl);
             if (firstCompiled) {
               setPreviewScene(firstCompiled);
             }
           }
 
-          // Switch to scenes tab
           setActiveTab('scenes');
         }, 1000);
       }
@@ -121,14 +110,12 @@ function ChatSceneContent() {
 
   const isProcessing = status === "submitted" || status === "streaming";
 
-  // Sync video ID when video changes
   useEffect(() => {
     if (video && video.id !== currentVideoId) {
       setCurrentVideoId(video.id);
     }
   }, [video, currentVideoId]);
 
-  // Auto-scroll
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -137,7 +124,6 @@ function ChatSceneContent() {
     scrollToBottom();
   }, [messages]);
 
-  // Handle URL prompt parameter
   useEffect(() => {
     const promptParam = searchParams.get("prompt");
     if (
@@ -170,10 +156,8 @@ function ChatSceneContent() {
   const handleSceneSave = async (updates: Partial<Scene>) => {
     if (!editingScene) return;
 
-    // Update scene
     updateScene(editingScene.id, updates);
 
-    // Trigger recompilation if code changed
     if (updates.code) {
       const updatedScene = { ...editingScene, ...updates, status: 'pending' as const };
       try {
@@ -208,12 +192,10 @@ function ChatSceneContent() {
     try {
       const result = await mergeScenes(video.id, video.scenes);
 
-      // Update video with final URL in localStorage
       if (result.videoUrl) {
         updateFinalVideo(result.videoUrl, result.duration);
       }
 
-      // Switch to video tab to show result
       setActiveTab('video');
     } catch (error) {
       console.error("Video merge failed:", error);
@@ -225,9 +207,7 @@ function ChatSceneContent() {
 
   return (
     <div className="h-screen bg-background text-foreground flex overflow-hidden">
-      {/* Chat Sidebar */}
-      <div className="w-1/3 border-r border-border/50 flex flex-col min-h-screen overflow-hidden">
-        {/* Chat Header */}
+        <div className="w-1/3 border-r border-border/50 flex flex-col min-h-screen overflow-hidden">
         <div className="p-6 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 glassmorphism rounded-full flex items-center justify-center">
@@ -242,7 +222,6 @@ function ChatSceneContent() {
           </div>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
           {messages.length === 0 && !isProcessing && (
             <div className="text-center py-12">
@@ -301,7 +280,6 @@ function ChatSceneContent() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <div className="p-6 border-t border-border/50 flex-shrink-0">
           <form onSubmit={handleSubmit} className="flex gap-3">
             <GlowingInput
@@ -321,9 +299,7 @@ function ChatSceneContent() {
         </div>
       </div>
 
-      {/* Content Area with Tabs */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Tabs */}
         <div className="border-b border-border/50 p-4 flex-shrink-0">
           <div className="flex gap-2 items-center justify-between">
             <div className="flex gap-2">
@@ -362,7 +338,6 @@ function ChatSceneContent() {
               </button>
             </div>
 
-            {/* Merge Button */}
             {video && activeTab === 'scenes' && (
               <button
                 onClick={handleMergeVideo}
@@ -389,8 +364,7 @@ function ChatSceneContent() {
             )}
           </div>
 
-          {/* Compilation Progress */}
-          {video && compilingCount > 0 && (
+            {video && compilingCount > 0 && (
             <div className="mt-3 flex items-center gap-3 text-xs">
               <Loader className="w-4 h-4 animate-spin text-primary" />
               <span className="text-muted-foreground">
@@ -409,11 +383,9 @@ function ChatSceneContent() {
           )}
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-hidden">
           {activeTab === "scenes" && video && (
             <div className="h-full flex">
-              {/* Scene Timeline */}
               <div className="w-1/3 border-r border-border/50">
                 <SceneTimeline
                   scenes={video.scenes}
@@ -422,14 +394,12 @@ function ChatSceneContent() {
                   onSceneDelete={handleSceneDelete}
                   onSceneReorder={reorderScene}
                   onAddScene={(pos) => {
-                    // Open modal to create new scene
                     console.log('Create scene at position', pos);
                   }}
                   currentSceneId={previewScene?.id}
                 />
               </div>
 
-              {/* Scene Preview */}
               <div className="flex-1 p-6 flex items-center justify-center">
                 {previewScene ? (
                   <div className="max-w-3xl w-full">
@@ -509,7 +479,6 @@ function ChatSceneContent() {
         </div>
       </div>
 
-      {/* Scene Edit Modal */}
       {editingScene && (
         <SceneEditModal
           scene={editingScene}
@@ -522,7 +491,6 @@ function ChatSceneContent() {
   );
 }
 
-// Main page component with Suspense boundary
 export default function ChatScenePage() {
   return (
     <Suspense fallback={

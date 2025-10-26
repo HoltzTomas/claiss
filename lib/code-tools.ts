@@ -2,10 +2,6 @@ import { tool } from "ai";
 import { z } from "zod";
 import { compileManimCode } from "./manim-compiler";
 
-/**
- * Tool for writing Python code - returns code to frontend for localStorage storage
- * No longer saves to server files - frontend handles storage with video ID association
- */
 export const writeCodeTool = tool({
   description:
     "Write or update Python code. The code will be returned to the frontend for localStorage storage with video ID association.",
@@ -102,10 +98,6 @@ export const writeCodeTool = tool({
   },
 });
 
-/**
- * Tool for reading existing Python code from frontend localStorage
- * Frontend will provide the code context when calling the LLM for modifications
- */
 export const readCodeTool = tool({
   description:
     "Read the current Python code that was provided by the frontend. Use this before making modifications to existing code.",

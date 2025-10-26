@@ -1,10 +1,3 @@
-/**
- * Modal HTTP client for calling remote Manim compilation functions.
- *
- * This version uses direct HTTP calls to Modal web endpoints,
- * eliminating Python dependencies in production environments.
- */
-
 export interface ModalCompilationResult {
   success: boolean;
   video_bytes?: Uint8Array;
@@ -33,29 +26,21 @@ export interface ModalMergeRequest {
   transition_duration?: number;
 }
 
-/**
- * HTTP-based Modal client for calling remote Manim compilation and video merging.
- */
 export class ModalHttpClient {
   private modalCompileEndpointUrl: string;
   private modalMergeEndpointUrl: string;
 
   constructor() {
-    // Modal web endpoint URLs from deployment
     this.modalCompileEndpointUrl = "https://holtztomas--classia-manim-compiler-compile-manim-web-endpoint.modal.run";
     this.modalMergeEndpointUrl = "https://holtztomas--classia-manim-compiler-merge-videos-web-endpoint.modal.run";
   }
 
-  /**
-   * Compile Manim animation using Modal HTTP endpoint.
-   */
   async compileAnimation(request: ModalCompilationRequest): Promise<ModalCompilationResult> {
     try {
       console.log('[MODAL-CLIENT] Starting remote HTTP compilation...');
       console.log(`[MODAL-CLIENT] Class: ${request.class_name || 'Scene'}`);
       console.log(`[MODAL-CLIENT] Quality: ${request.quality || 'low_quality'}`);
 
-      // Prepare request payload
       const requestPayload = {
         python_code: request.python_code,
         class_name: request.class_name || 'Scene',
@@ -64,7 +49,6 @@ export class ModalHttpClient {
 
       console.log('[MODAL-CLIENT] Calling Modal HTTP endpoint...');
 
-      // Make HTTP POST request to Modal endpoint
       const response = await fetch(this.modalCompileEndpointUrl, {
         method: 'POST',
         headers: {
@@ -80,11 +64,9 @@ export class ModalHttpClient {
       const result = await response.json();
 
       if (result.success) {
-        // Convert base64 video bytes back to Uint8Array
         if (result.video_bytes_base64) {
           const videoBuffer = Buffer.from(result.video_bytes_base64, 'base64');
           result.video_bytes = new Uint8Array(videoBuffer);
-          // Clean up the base64 version
           delete result.video_bytes_base64;
         }
 
@@ -117,14 +99,10 @@ export class ModalHttpClient {
     }
   }
 
-  /**
-   * Check if Modal is available and the endpoint is accessible.
-   */
   async healthCheck(): Promise<{ healthy: boolean; error?: string }> {
     try {
       console.log('[MODAL-CLIENT] Performing health check...');
 
-      // Test with minimal request
       const testPayload = {
         python_code: 'from manim import *\nclass Test(Scene):\n    def construct(self):\n        pass',
         class_name: 'Test',
@@ -160,15 +138,11 @@ export class ModalHttpClient {
     }
   }
 
-  /**
-   * Merge multiple scene videos using Modal's FFmpeg endpoint.
-   */
   async mergeVideos(request: ModalMergeRequest): Promise<ModalMergeResult> {
     try {
       console.log(`[MODAL-CLIENT] Starting remote video merge of ${request.video_urls.length} scenes...`);
       console.log(`[MODAL-CLIENT] Transitions: ${request.add_transitions ? 'enabled' : 'disabled'}`);
 
-      // Prepare request payload
       const requestPayload = {
         video_urls: request.video_urls,
         add_transitions: request.add_transitions || false,
@@ -177,7 +151,6 @@ export class ModalHttpClient {
 
       console.log('[MODAL-CLIENT] Calling Modal merge endpoint...');
 
-      // Make HTTP POST request to Modal merge endpoint
       const response = await fetch(this.modalMergeEndpointUrl, {
         method: 'POST',
         headers: {
@@ -193,11 +166,9 @@ export class ModalHttpClient {
       const result = await response.json();
 
       if (result.success) {
-        // Convert base64 video bytes back to Uint8Array
         if (result.video_bytes_base64) {
           const videoBuffer = Buffer.from(result.video_bytes_base64, 'base64');
           result.video_bytes = new Uint8Array(videoBuffer);
-          // Clean up the base64 version
           delete result.video_bytes_base64;
         }
 
@@ -230,14 +201,8 @@ export class ModalHttpClient {
   }
 }
 
-/**
- * Default Modal HTTP client instance.
- */
 export const defaultModalHttpClient = new ModalHttpClient();
 
-/**
- * Utility function to compile Manim animation using the HTTP client.
- */
 export async function compileAnimationWithModal(
   pythonCode: string,
   className: string = 'Scene',
