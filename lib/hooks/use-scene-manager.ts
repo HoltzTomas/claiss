@@ -9,7 +9,6 @@ export function useSceneManager(videoId?: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load video
   const loadVideo = useCallback(async (id?: string) => {
     setLoading(true);
     setError(null);
@@ -30,7 +29,6 @@ export function useSceneManager(videoId?: string) {
     }
   }, []);
 
-  // Create video from code
   const createVideoFromCode = useCallback((code: string, title: string) => {
     try {
       const newVideo = sceneManager.createVideoFromCode(code, title);
@@ -43,7 +41,6 @@ export function useSceneManager(videoId?: string) {
     }
   }, []);
 
-  // Apply scene operation
   const applyOperation = useCallback((operation: SceneOperation) => {
     if (!video) {
       setError('No video loaded');
@@ -61,7 +58,6 @@ export function useSceneManager(videoId?: string) {
     }
   }, [video]);
 
-  // Update scene
   const updateScene = useCallback((sceneId: string, changes: Partial<Scene>) => {
     return applyOperation({
       type: 'modify',
@@ -70,7 +66,6 @@ export function useSceneManager(videoId?: string) {
     });
   }, [applyOperation]);
 
-  // Delete scene
   const deleteScene = useCallback((sceneId: string) => {
     return applyOperation({
       type: 'delete',
@@ -78,7 +73,6 @@ export function useSceneManager(videoId?: string) {
     });
   }, [applyOperation]);
 
-  // Reorder scene
   const reorderScene = useCallback((sceneId: string, newPosition: number) => {
     return applyOperation({
       type: 'reorder',
@@ -87,14 +81,11 @@ export function useSceneManager(videoId?: string) {
     });
   }, [applyOperation]);
 
-  // Create scene
   const createScene = useCallback((sceneData: Partial<Scene>, position: number) => {
-    // Ensure we have a video to add scenes to
     if (!video) {
       const newVideo = sceneManager.getOrCreateVideo('My Video');
       setVideo(newVideo);
 
-      // Apply operation to the new video
       const updatedVideo = sceneManager.applyOperation(newVideo.id, {
         type: 'create',
         scene: sceneData,
@@ -112,7 +103,6 @@ export function useSceneManager(videoId?: string) {
     });
   }, [video, applyOperation]);
 
-  // Update scene status
   const updateSceneStatus = useCallback((
     sceneId: string,
     status: Scene['status'],
@@ -122,10 +112,8 @@ export function useSceneManager(videoId?: string) {
   ) => {
     if (!video) return;
 
-    // Update status with sceneManager (only 5 params)
     sceneManager.updateSceneStatus(video.id, sceneId, status, videoUrl, errorMsg);
 
-    // Manually update videoId if provided
     if (videoIdStr) {
       const scene = video.scenes.find(s => s.id === sceneId);
       if (scene) {
@@ -137,7 +125,6 @@ export function useSceneManager(videoId?: string) {
     loadVideo(video.id);
   }, [video, loadVideo]);
 
-  // Get compilation progress
   const getCompilationProgress = useCallback(() => {
     if (!video) return { total: 0, compiled: 0, pending: 0, failed: 0, percentage: 0 };
 
@@ -150,13 +137,11 @@ export function useSceneManager(videoId?: string) {
     return { total, compiled, pending, failed, percentage };
   }, [video]);
 
-  // Check if ready to merge
   const isReadyToMerge = useCallback(() => {
     if (!video) return false;
     return sceneManager.areAllScenesCompiled(video.id);
   }, [video]);
 
-  // Update final video URL
   const updateFinalVideo = useCallback((finalVideoUrl: string, totalDuration?: number) => {
     if (!video) return;
 
@@ -169,7 +154,6 @@ export function useSceneManager(videoId?: string) {
     setVideo({ ...video });
   }, [video]);
 
-  // Load video on mount
   useEffect(() => {
     loadVideo(videoId);
   }, [videoId, loadVideo]);

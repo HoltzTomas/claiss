@@ -4,10 +4,6 @@ import type { SceneOperation } from '@/lib/scene-types';
 
 export const maxDuration = 30;
 
-/**
- * POST /api/scene-operations
- * Perform CRUD operations on scenes
- */
 export async function POST(request: NextRequest) {
   console.log(`[SCENE-OPS-API] Starting request at ${new Date().toISOString()}`);
 
@@ -31,7 +27,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`[SCENE-OPS-API] Applying ${operation.type} operation to video ${videoId}`);
 
-    // Apply operation
     const updatedVideo = sceneManager.applyOperation(videoId, operation as SceneOperation);
 
     if (!updatedVideo) {
@@ -59,10 +54,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/scene-operations?videoId=xxx&sceneId=xxx
- * Get video or scene information
- */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -70,7 +61,6 @@ export async function GET(request: NextRequest) {
     const sceneId = searchParams.get('sceneId');
     const action = searchParams.get('action');
 
-    // Get latest video
     if (action === 'latest') {
       const video = sceneManager.getLatestVideo();
 
@@ -87,7 +77,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get specific video
     if (videoId && !sceneId) {
       const video = sceneManager.getVideo(videoId);
 
@@ -104,7 +93,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get specific scene
     if (videoId && sceneId) {
       const scene = sceneManager.getScene(videoId, sceneId);
 
@@ -134,12 +122,7 @@ export async function GET(request: NextRequest) {
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
 
-/**
- * DELETE /api/scene-operations
- * Delete a scene (convenience endpoint)
- */
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();

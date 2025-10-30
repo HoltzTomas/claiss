@@ -1,24 +1,14 @@
-/**
- * Scene-based compilation system
- * Compiles individual scenes instead of entire videos
- */
-
 import { compileManimCode, type ManimCompilationResult } from './manim-compiler';
 import type { Scene, SceneCompilationResult } from './scene-types';
 import { put } from '@vercel/blob';
 
-/**
- * Compile a single scene
- */
 export async function compileScene(scene: Scene): Promise<SceneCompilationResult> {
   console.log(`[SCENE-COMPILER] Compiling scene: ${scene.name} (${scene.id})`);
 
   try {
-    // Extract class name from scene code
     const classMatch = scene.code.match(/class\s+(\w+)\s*\(/);
     const className = classMatch ? classMatch[1] : 'Scene';
 
-    // Compile the scene code
     const result = await compileManimCode(scene.code, className);
 
     if (result.success) {
@@ -55,15 +45,11 @@ export async function compileScene(scene: Scene): Promise<SceneCompilationResult
   }
 }
 
-/**
- * Compile multiple scenes in parallel
- */
 export async function compileScenes(scenes: Scene[]): Promise<SceneCompilationResult[]> {
   console.log(`[SCENE-COMPILER] Compiling ${scenes.length} scene(s) in parallel...`);
 
   const startTime = Date.now();
 
-  // Compile all scenes in parallel
   const results = await Promise.all(
     scenes.map(scene => compileScene(scene))
   );
@@ -77,9 +63,6 @@ export async function compileScenes(scenes: Scene[]): Promise<SceneCompilationRe
   return results;
 }
 
-/**
- * Compile only modified scenes (those with status 'pending')
- */
 export async function compileModifiedScenes(scenes: Scene[]): Promise<SceneCompilationResult[]> {
   const modifiedScenes = scenes.filter(s => s.status === 'pending');
 
@@ -92,11 +75,7 @@ export async function compileModifiedScenes(scenes: Scene[]): Promise<SceneCompi
   return compileScenes(modifiedScenes);
 }
 
-/**
- * Get cached scene video or compile if not cached
- */
 export async function getOrCompileScene(scene: Scene): Promise<SceneCompilationResult> {
-  // Check if scene already has a compiled video
   if (scene.status === 'compiled' && scene.videoUrl) {
     console.log(`[SCENE-COMPILER] Using cached video for scene "${scene.name}"`);
 
@@ -108,22 +87,16 @@ export async function getOrCompileScene(scene: Scene): Promise<SceneCompilationR
     };
   }
 
-  // Compile scene if not cached
   console.log(`[SCENE-COMPILER] No cache found, compiling scene "${scene.name}"`);
   return compileScene(scene);
 }
 
-/**
- * Compile scenes with dependency resolution
- */
 export async function compileScenesWithDependencies(scenes: Scene[]): Promise<SceneCompilationResult[]> {
   console.log(`[SCENE-COMPILER] Compiling scenes with dependency resolution...`);
 
-  // Build dependency graph
   const sceneMap = new Map<string, Scene>();
   scenes.forEach(s => sceneMap.set(s.id, s));
 
-  // Topological sort for dependency order
   const sorted: Scene[] = [];
   const visited = new Set<string>();
   const visiting = new Set<string>();
@@ -157,7 +130,6 @@ export async function compileScenesWithDependencies(scenes: Scene[]): Promise<Sc
 
   console.log(`[SCENE-COMPILER] Compilation order:`, sorted.map(s => s.name));
 
-  // Compile in dependency order (sequentially for dependent scenes)
   const results: SceneCompilationResult[] = [];
 
   for (const scene of sorted) {
@@ -174,28 +146,18 @@ export async function compileScenesWithDependencies(scenes: Scene[]): Promise<Sc
   return results;
 }
 
-/**
- * Estimate compilation time for scenes
- */
 export function estimateCompilationTime(scenes: Scene[]): number {
-  // Rough estimate: 10-30 seconds per scene depending on complexity
-  const avgTimePerScene = 20; // seconds
+  const avgTimePerScene = 20;
 
   return scenes.length * avgTimePerScene;
 }
 
-/**
- * Check if a scene needs recompilation
- */
 export function needsRecompilation(scene: Scene): boolean {
   return scene.status === 'pending' ||
          scene.status === 'failed' ||
          !scene.videoUrl;
 }
 
-/**
- * Get compilation progress
- */
 export function getCompilationProgress(scenes: Scene[]): {
   total: number;
   compiled: number;

@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
       console.log(`[VIDEO-API] Looking for specific video ID: ${videoId}`);
 
       try {
-        // Look for specific video by ID in Blob storage
         const { blobs } = await list({
           prefix: `videos/${videoId}.mp4`,
           limit: 1,
@@ -31,7 +30,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Fallback to /tmp file for backward compatibility
       const { existsSync, createReadStream, statSync } = await import("fs");
       const videoPath = "/tmp/latest.mp4";
 
@@ -55,7 +53,6 @@ export async function GET(request: NextRequest) {
     } else {
       console.log("[VIDEO-API] Looking for latest video in Blob storage...");
 
-      // List videos in the 'videos/' folder, sorted by most recent
       const { blobs } = await list({
         prefix: "videos/",
         limit: 10,
@@ -64,7 +61,6 @@ export async function GET(request: NextRequest) {
       if (blobs.length === 0) {
         console.log("[VIDEO-API] No videos found in Blob storage");
 
-        // Fallback to /tmp file
         const { existsSync, createReadStream, statSync } = await import("fs");
         const videoPath = "/tmp/latest.mp4";
 
@@ -87,7 +83,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Sort by uploadedAt date (most recent first) and get the latest video
       const latestVideo = blobs.sort(
         (a, b) =>
           new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
@@ -113,7 +108,6 @@ export async function HEAD(request: NextRequest) {
       );
 
       try {
-        // Look for specific video by ID in Blob storage
         const { blobs } = await list({
           prefix: `videos/${videoId}.mp4`,
           limit: 1,
@@ -140,7 +134,6 @@ export async function HEAD(request: NextRequest) {
         );
       }
 
-      // Fallback to /tmp file
       const { existsSync, statSync } = await import("fs");
       const videoPath = "/tmp/latest.mp4";
 
@@ -163,14 +156,12 @@ export async function HEAD(request: NextRequest) {
         return new NextResponse(null, { status: 404 });
       }
     } else {
-      // Legacy: checking for latest video without specific ID
       console.log("[VIDEO-API] HEAD request - checking for latest video...");
 
       try {
-        // List videos in the 'videos/' folder
         const { blobs } = await list({
           prefix: "videos/",
-          limit: 1, // Just check if any exist
+          limit: 1,
         });
 
         if (blobs.length > 0) {
@@ -195,7 +186,6 @@ export async function HEAD(request: NextRequest) {
         );
       }
 
-      // Fallback to /tmp file
       const { existsSync, statSync } = await import("fs");
       const videoPath = "/tmp/latest.mp4";
 

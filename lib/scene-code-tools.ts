@@ -1,16 +1,8 @@
-/**
- * Scene-based code tools for AI agent interactions
- * These tools work with individual scenes instead of monolithic code
- */
-
 import { tool } from "ai";
 import { z } from "zod";
 import { compileManimCode } from "./manim-compiler";
 import type { Scene, SceneOperation } from "./scene-types";
 
-/**
- * Tool for writing scene code (creates or updates individual scenes)
- */
 export const writeSceneCodeTool = tool({
   description:
     "Write or update code for a specific scene in the video. Use this for scene-based editing instead of rewriting the entire video code.",
@@ -38,7 +30,6 @@ export const writeSceneCodeTool = tool({
         `[SCENE-CODE-TOOL] ${sceneId ? "Updating" : "Creating"} scene: ${sceneName}`
       );
 
-      // Validate Manim code
       if (!code.includes("from manim import") && !code.includes("manim")) {
         return {
           success: false,
@@ -47,13 +38,11 @@ export const writeSceneCodeTool = tool({
         };
       }
 
-      // Extract class name
       const classMatch = code.match(/class\s+(\w+)\s*\(/);
       const className = classMatch ? classMatch[1] : "Scene";
 
       console.log(`[SCENE-CODE-TOOL] Scene class: ${className}`);
 
-      // Try to compile the scene
       try {
         const compilationResult = await compileManimCode(code, className);
 
@@ -117,9 +106,6 @@ export const writeSceneCodeTool = tool({
   },
 });
 
-/**
- * Tool for reading scene information
- */
 export const readScenesTool = tool({
   description:
     "Read information about existing scenes in the video. Use this to understand the video structure before making edits.",
@@ -144,10 +130,6 @@ export const readScenesTool = tool({
         `[SCENE-CODE-TOOL] 📖 Reading scenes from video ${videoId || "latest"}`
       );
 
-      // This would integrate with SceneManager in production
-      // For now, return a structure that the agent can work with
-
-      // Simulated scene data (would come from SceneManager)
       const mockScenes = [
         {
           id: "scene-1",
@@ -191,9 +173,6 @@ export const readScenesTool = tool({
   },
 });
 
-/**
- * Tool for scene operations (delete, reorder, split)
- */
 export const sceneOperationTool = tool({
   description:
     "Perform operations on scenes: delete, reorder, or split. Use this for structural changes to the video.",
@@ -273,9 +252,6 @@ export const sceneOperationTool = tool({
   },
 });
 
-/**
- * Tool for analyzing which scenes need to be modified for a given request
- */
 export const analyzeSceneTargetsTool = tool({
   description:
     "Analyze a user's edit request and determine which scenes need to be modified. Use this FIRST before making any scene edits.",
@@ -300,7 +276,6 @@ export const analyzeSceneTargetsTool = tool({
         console.error("[SCENE-CODE-TOOL] Failed to parse video structure");
       }
 
-      // Simple keyword matching (in production, this would use an LLM)
       const keywords = userRequest.toLowerCase();
       const targetScenes: string[] = [];
 
@@ -359,9 +334,6 @@ export const analyzeSceneTargetsTool = tool({
   },
 });
 
-/**
- * Export all scene tools
- */
 export const sceneTools = {
   writeScene: writeSceneCodeTool,
   readScenes: readScenesTool,

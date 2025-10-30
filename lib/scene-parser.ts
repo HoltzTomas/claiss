@@ -1,17 +1,9 @@
-/**
- * Parser for extracting scenes from monolithic Manim code
- */
-
 import type { SceneMetadata } from './scene-types';
 
-/**
- * Parse Manim code to extract individual scenes based on next_section() calls
- */
 export function parseManimScenes(code: string): SceneMetadata[] {
   const lines = code.split('\n');
   const scenes: SceneMetadata[] = [];
 
-  // Find the construct method
   const constructStart = lines.findIndex(line =>
     line.trim().includes('def construct(self)')
   );
@@ -21,7 +13,6 @@ export function parseManimScenes(code: string): SceneMetadata[] {
     return [];
   }
 
-  // Find all next_section calls
   const sectionLines: { line: number; name: string }[] = [];
 
   for (let i = constructStart; i < lines.length; i++) {
@@ -36,7 +27,6 @@ export function parseManimScenes(code: string): SceneMetadata[] {
     }
   }
 
-  // If no sections found, treat entire construct as one scene
   if (sectionLines.length === 0) {
     const wholeCode = extractCodeBlock(lines, constructStart, lines.length - 1);
     return [{
@@ -72,9 +62,6 @@ export function parseManimScenes(code: string): SceneMetadata[] {
   return scenes;
 }
 
-/**
- * Extract a block of code between start and end lines
- */
 function extractCodeBlock(lines: string[], start: number, end: number): string {
   const codeLines = lines.slice(start, end + 1);
 
@@ -91,9 +78,6 @@ function extractCodeBlock(lines: string[], start: number, end: number): string {
     .join('\n');
 }
 
-/**
- * Extract object names that are created in this code block
- */
 function extractCreatedObjects(code: string): string[] {
   const objects: string[] = [];
   const lines = code.split('\n');
@@ -109,9 +93,6 @@ function extractCreatedObjects(code: string): string[] {
   return objects;
 }
 
-/**
- * Extract object names that are used but not created
- */
 function extractUsedObjects(code: string): string[] {
   const used: Set<string> = new Set();
   const created = new Set(extractCreatedObjects(code));
@@ -132,9 +113,6 @@ function extractUsedObjects(code: string): string[] {
   return Array.from(used);
 }
 
-/**
- * Convert scene metadata into a standalone Manim class
- */
 export function createStandaloneScene(
   sceneName: string,
   sceneCode: string,
@@ -150,9 +128,6 @@ ${sceneCode.split('\n').map(line => '        ' + line).join('\n')}
 `;
 }
 
-/**
- * Parse full Manim code and convert to scene-based structure
- */
 export function convertToSceneBasedCode(code: string): {
   imports: string;
   baseClass: string;
@@ -183,9 +158,6 @@ export function convertToSceneBasedCode(code: string): {
   return { imports, baseClass, scenes };
 }
 
-/**
- * Merge scene codes back into a monolithic class
- */
 export function mergeScenesToMonolithic(
   scenes: Array<{ name: string; code: string }>,
   className: string = 'Animation'
@@ -205,9 +177,6 @@ ${construct}
 `;
 }
 
-/**
- * Detect dependencies between scenes
- */
 export function detectSceneDependencies(scenes: SceneMetadata[]): Map<string, string[]> {
   const dependencies = new Map<string, string[]>();
 

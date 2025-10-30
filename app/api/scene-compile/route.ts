@@ -4,10 +4,7 @@ import type { Scene } from '@/lib/scene-types';
 
 export const maxDuration = 60;
 
-/**
- * POST /api/scene-compile
- * Compile individual scene(s)
- */
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   console.log(`[SCENE-COMPILE-API] Starting request at ${new Date().toISOString()}`);
@@ -17,7 +14,6 @@ export async function POST(request: NextRequest) {
     const { scene, scenes, mode = 'single' } = body;
 
     if (mode === 'single') {
-      // Compile single scene
       if (!scene) {
         return NextResponse.json({
           success: false,
@@ -38,7 +34,6 @@ export async function POST(request: NextRequest) {
       });
 
     } else if (mode === 'multiple') {
-      // Compile multiple scenes in parallel
       if (!scenes || !Array.isArray(scenes)) {
         return NextResponse.json({
           success: false,
@@ -84,10 +79,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/scene-compile
- * Health check and API info
- */
 export async function GET() {
   return NextResponse.json({
     name: 'Scene Compilation API',

@@ -1,10 +1,3 @@
-/**
- * Modal client for calling remote Manim compilation functions.
- *
- * This module handles communication with Modal's serverless functions
- * for compiling Manim animations in containerized environments.
- */
-
 export interface ModalCompilationResult {
   success: boolean;
   video_bytes?: Uint8Array;
@@ -19,9 +12,6 @@ export interface ModalCompilationRequest {
   quality?: "low_quality" | "medium_quality" | "high_quality";
 }
 
-/**
- * Modal client for calling remote Manim compilation.
- */
 export class ModalClient {
   private appName: string;
   private functionName: string;
@@ -34,14 +24,9 @@ export class ModalClient {
     this.appName = appName;
     this.functionName = functionName;
 
-    // Modal function URL format: https://modal-labs--{app-name}-{function-name}.modal.run
-    // For webhook endpoints, but we'll use the Modal Python client instead
     this.modalEndpoint = `https://modal-labs--${appName.replace("_", "-")}-${functionName.replace("_", "-")}.modal.run`;
   }
 
-  /**
-   * Compile Manim animation using Modal serverless function.
-   */
   async compileAnimation(
     request: ModalCompilationRequest,
   ): Promise<ModalCompilationResult> {
@@ -52,8 +37,6 @@ export class ModalClient {
         `[MODAL-CLIENT] Quality: ${request.quality || "low_quality"}`,
       );
 
-      // For now, we'll use a local subprocess to call Modal CLI
-      // In production, you might want to use Modal's REST API or SDK
       const modalCall = await this.callModalFunction(request);
 
       if (modalCall.success && modalCall.video_bytes) {
@@ -90,14 +73,6 @@ export class ModalClient {
     }
   }
 
-  /**
-   * Call Modal function via Python subprocess.
-   *
-   * In a production environment, you might want to:
-   * 1. Use Modal's REST API directly
-   * 2. Use a Node.js Modal SDK (if available)
-   * 3. Create a dedicated microservice for Modal communication
-   */
   private async callModalFunction(
     request: ModalCompilationRequest,
   ): Promise<ModalCompilationResult> {
@@ -106,7 +81,6 @@ export class ModalClient {
     const path = await import("path");
     const os = await import("os");
 
-    // Create temporary file for the Python code
     const tempDir = os.tmpdir();
     const tempCodeFile = path.join(tempDir, `modal_request_${Date.now()}.py`);
     const tempResultFile = path.join(
@@ -115,10 +89,8 @@ export class ModalClient {
     );
 
     try {
-      // Write Python code to temporary file
       fs.writeFileSync(tempCodeFile, request.python_code);
 
-      // Create a Python script to call Modal
       const modalScript = `
 import modal
 import json
@@ -126,25 +98,20 @@ import base64
 import sys
 
 try:
-    # Get the Modal function
     f = modal.Function.from_name("${this.appName}", "${this.functionName}")
 
-    # Read the Python code
     with open("${tempCodeFile}", "r") as file:
         python_code = file.read()
 
-    # Call the Modal function
     result = f.remote(
         python_code=python_code,
         class_name="${request.class_name || "Scene"}",
         quality="${request.quality || "low_quality"}"
     )
 
-    # Encode video bytes as base64 for JSON serialization
     if result.get("success") and result.get("video_bytes"):
         result["video_bytes"] = base64.b64encode(result["video_bytes"]).decode('utf-8')
 
-    # Write result to file
     with open("${tempResultFile}", "w") as file:
         json.dump(result, file)
 
@@ -169,21 +136,18 @@ except Exception as e:
       );
       fs.writeFileSync(tempScriptFile, modalScript);
 
-      // Execute the Modal script
       console.log("[MODAL-CLIENT] Calling Modal function...");
 
       const command = `python3 "${tempScriptFile}"`;
       execSync(command, {
         stdio: "pipe",
-        timeout: 5 * 60 * 1000, // 5 minute timeout
+        timeout: 5 * 60 * 1000, 
         encoding: "utf8",
       });
 
-      // Read the result
       const resultData = fs.readFileSync(tempResultFile, "utf8");
       const result = JSON.parse(resultData);
 
-      // Decode video bytes from base64
       if (result.success && result.video_bytes) {
         const videoBuffer = Buffer.from(result.video_bytes, "base64");
         result.video_bytes = new Uint8Array(videoBuffer);
@@ -191,7 +155,6 @@ except Exception as e:
 
       return result;
     } finally {
-      // Clean up temporary files
       try {
         fs.unlinkSync(tempCodeFile);
         fs.unlinkSync(tempResultFile);
@@ -209,20 +172,15 @@ except Exception as e:
     }
   }
 
-  /**
-   * Check if Modal is available and the app is deployed.
-   */
   async healthCheck(): Promise<{ healthy: boolean; error?: string }> {
     try {
       const { execSync } = await import("child_process");
 
-      // Simple Modal health check
       const healthScript = `
 import modal
 import json
 
 try:
-    # Try to get the health check function
     f = modal.Function.from_name("${this.appName}", "health_check")
     result = f.remote()
 
@@ -242,12 +200,11 @@ except Exception as e:
 
       const output = execSync(`python3 "${tempFile}"`, {
         encoding: "utf8",
-        timeout: 30000, // 30 second timeout
+        timeout: 30000,
       });
 
       const result = JSON.parse(output.trim());
 
-      // Clean up
       (await import("fs")).unlinkSync(tempFile);
 
       return result;
@@ -260,14 +217,8 @@ except Exception as e:
   }
 }
 
-/**
- * Default Modal client instance.
- */
 export const defaultModalClient = new ModalClient();
 
-/**
- * Utility function to compile Manim animation using the default client.
- */
 export async function compileAnimationWithModal(
   pythonCode: string,
   className: string = "Scene",
