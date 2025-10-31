@@ -14,7 +14,6 @@ export function useVideoMerger() {
   const [mergeProgress, setMergeProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Merge scenes into final video
   const mergeScenes = useCallback(async (
     videoIdOrScenes: string | Scene[],
     scenesOrOptions?: Scene[] | MergeOptions,
@@ -25,13 +24,11 @@ export function useVideoMerger() {
     setError(null);
 
     try {
-      // Parse parameters - support both old and new signatures
       let videoId: string | undefined;
       let scenes: Scene[] | undefined;
       let options: MergeOptions | undefined;
 
       if (typeof videoIdOrScenes === 'string') {
-        // Old signature: mergeScenes(videoId, scenes?, options?)
         videoId = videoIdOrScenes;
         if (Array.isArray(scenesOrOptions)) {
           scenes = scenesOrOptions;
@@ -40,12 +37,10 @@ export function useVideoMerger() {
           options = scenesOrOptions;
         }
       } else {
-        // New signature: mergeScenes(scenes, options?)
         scenes = videoIdOrScenes;
         options = scenesOrOptions as MergeOptions;
       }
 
-      // Must provide scenes array
       if (!scenes || !Array.isArray(scenes)) {
         throw new Error('Scenes array is required');
       }
@@ -81,7 +76,6 @@ export function useVideoMerger() {
     }
   }, []);
 
-  // Check merge readiness
   const checkMergeReadiness = useCallback(async (videoId: string) => {
     try {
       const response = await fetch(`/api/video-merge?videoId=${videoId}`);
@@ -103,7 +97,6 @@ export function useVideoMerger() {
     }
   }, []);
 
-  // Clear error
   const clearError = useCallback(() => {
     setError(null);
   }, []);

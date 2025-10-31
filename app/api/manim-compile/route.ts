@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
     console.log(`[MANIM-COMPILE-API] Compiling class: ${className}`);
     console.log(`[MANIM-COMPILE-API] Quality: ${quality}`);
 
-    // Use Modal for compilation
     const result = await compileAnimationWithModal(pythonCode, className, quality);
 
     const compilationFailed = !result.success || !result.video_bytes;
@@ -106,7 +105,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Health check endpoint
   try {
     const { defaultModalClient } = await import('@/lib/modal-client');
     const health = await defaultModalClient.healthCheck();

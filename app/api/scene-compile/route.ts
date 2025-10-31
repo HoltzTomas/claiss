@@ -4,10 +4,7 @@ import type { Scene } from '@/lib/scene-types';
 
 export const maxDuration = 60;
 
-/**
- * POST /api/scene-compile
- * Compile individual scene(s)
- */
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   console.log(`[SCENE-COMPILE-API] Starting request at ${new Date().toISOString()}`);
@@ -85,10 +82,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/scene-compile
- * Health check and API info
- */
 export async function GET() {
   return NextResponse.json({
     name: 'Scene Compilation API',

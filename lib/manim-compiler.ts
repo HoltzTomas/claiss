@@ -22,9 +22,8 @@ export interface ManimCompilationResult {
   duration?: number;
 }
 
-// Environment configuration for compilation method
-const USE_MODAL = process.env.USE_MODAL_COMPILATION !== "false"; // Default to true
-const MODAL_FALLBACK_TO_LOCAL = process.env.MODAL_FALLBACK_TO_LOCAL !== "false"; // Default to true
+const USE_MODAL = process.env.USE_MODAL_COMPILATION !== "false";
+const MODAL_FALLBACK_TO_LOCAL = process.env.MODAL_FALLBACK_TO_LOCAL !== "false";
 
 export async function compileManimCode(
   pythonCode: string,
@@ -34,7 +33,6 @@ export async function compileManimCode(
   console.log(`[MANIM-COMPILER] Modal enabled: ${USE_MODAL}`);
   console.log(`[MANIM-COMPILER] Local fallback: ${MODAL_FALLBACK_TO_LOCAL}`);
 
-  // Try Modal compilation first (if enabled)
   if (USE_MODAL) {
     try {
       console.log(`[MANIM-COMPILER] 🚀 Attempting Modal compilation...`);
@@ -48,7 +46,6 @@ export async function compileManimCode(
           `[MANIM-COMPILER] ⚠️ Modal compilation failed: ${modalResult.error}`,
         );
 
-        // If Modal fails and fallback is disabled, return the Modal error
         if (!MODAL_FALLBACK_TO_LOCAL) {
           return modalResult;
         }
@@ -59,7 +56,6 @@ export async function compileManimCode(
         modalError,
       );
 
-      // If Modal throws and fallback is disabled, return the error
       if (!MODAL_FALLBACK_TO_LOCAL) {
         return {
           success: false,
@@ -70,20 +66,15 @@ export async function compileManimCode(
     }
   }
 
-  // Fallback to local compilation
   console.log(`[MANIM-COMPILER] 🔄 Falling back to local compilation...`);
   return await compileWithLocal(pythonCode, className);
 }
 
-/**
- * Compile using Modal serverless containers (direct call).
- */
 async function compileWithModal(
   pythonCode: string,
   className: string,
 ): Promise<ManimCompilationResult> {
   try {
-    // Direct call to modal-client (no HTTP roundtrip!)
     const result = await compileAnimationWithModal(
       pythonCode,
       className,
@@ -91,7 +82,6 @@ async function compileWithModal(
     );
 
     if (result.success && result.video_bytes) {
-      // Save video to Vercel Blob instead of tmp directory
       const buffer = Buffer.from(result.video_bytes);
 
       console.log(
@@ -99,7 +89,6 @@ async function compileWithModal(
       );
 
       try {
-        // Generate simple video ID and upload to Blob
         const videoId = generateSimpleVideoId();
         const blob = await put(`videos/${videoId}.mp4`, buffer, {
           access: "public",
@@ -173,9 +162,6 @@ async function compileWithModal(
   }
 }
 
-/**
- * Compile using local Manim installation (original implementation).
- */
 async function compileWithLocal(
   pythonCode: string,
   className: string,
@@ -188,20 +174,16 @@ async function compileWithLocal(
   try {
     console.log(`[MANIM-COMPILER] Starting local compilation for ${className}`);
 
-    // Create temporary directory
     mkdirSync(tempDir, { recursive: true });
 
-    // Write Python code to file
     writeFileSync(filePath, pythonCode);
     console.log(`[MANIM-COMPILER] ✅ Python file written: ${filePath}`);
 
-    // Activate UV environment and run Manim with LaTeX support
     const uvEnvPath = path.join(process.cwd(), "manim-test");
     const command = `export LIBGS=/opt/homebrew/lib/libgs.dylib && eval "$(/usr/libexec/path_helper -s)" && source ${uvEnvPath}/bin/activate && manim ${filePath} ${className} -ql --disable_caching`;
 
     console.log(`[MANIM-COMPILER] 🚀 Executing: ${command}`);
 
-    // Execute Manim compilation
     const output = execSync(command, {
       cwd: tempDir,
       encoding: "utf8",
@@ -210,7 +192,6 @@ async function compileWithLocal(
 
     console.log(`[MANIM-COMPILER] ✅ Local compilation completed`);
 
-    // Find the generated video file in the standard Manim output structure
     const manimOutputPath = path.join(
       tempDir,
       "media",
@@ -225,7 +206,6 @@ async function compileWithLocal(
 
     if (existsSync(manimOutputPath)) {
       try {
-        // Read the video file and upload to Vercel Blob
         const { readFileSync } = await import("fs");
         const videoBuffer = readFileSync(manimOutputPath);
 
@@ -233,7 +213,6 @@ async function compileWithLocal(
           `[MANIM-COMPILER] 📤 Uploading local video to Vercel Blob... (${videoBuffer.length} bytes)`,
         );
 
-        // Generate simple video ID and upload to Blob
         const videoId = generateSimpleVideoId();
         const blob = await put(`videos/${videoId}.mp4`, videoBuffer, {
           access: "public",
@@ -259,7 +238,6 @@ async function compileWithLocal(
           blobError,
         );
 
-        // Fallback to original /tmp approach if Blob fails
         try {
           const { readFileSync, copyFileSync } = await import("fs");
           const videoId = generateSimpleVideoId();
@@ -294,7 +272,6 @@ async function compileWithLocal(
         }
       }
     } else {
-      // Try to find any video file in the output directory
       try {
         const videoDir = path.dirname(manimOutputPath);
         const files = readdirSync(videoDir);
@@ -326,7 +303,6 @@ async function compileWithLocal(
 export function extractManimCode(
   text: string,
 ): { code: string; className: string } | null {
-  // Look for Python code blocks
   const codeBlockRegex = /```(?:python)?\s*([\s\S]*?)\s*```/gi;
   const match = codeBlockRegex.exec(text);
 
@@ -334,11 +310,9 @@ export function extractManimCode(
 
   const code = match[1];
 
-  // Extract class name (look for class definition)
   const classMatch = code.match(/class\s+(\w+)\s*\(/);
   const className = classMatch ? classMatch[1] : "Scene";
 
-  // Validate it's Manim code
   if (code.includes("from manim import") || code.includes("manim")) {
     return { code, className };
   }

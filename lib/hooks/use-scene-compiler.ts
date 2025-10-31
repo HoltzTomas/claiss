@@ -7,7 +7,6 @@ export function useSceneCompiler() {
   const [compiling, setCompiling] = useState<Set<string>>(new Set());
   const [compilationErrors, setCompilationErrors] = useState<Map<string, string>>(new Map());
 
-  // Compile single scene
   const compileScene = useCallback(async (scene: Scene) => {
     setCompiling(prev => new Set(prev).add(scene.id));
     setCompilationErrors(prev => {
@@ -46,12 +45,10 @@ export function useSceneCompiler() {
     }
   }, []);
 
-  // Compile multiple scenes
   const compileScenes = useCallback(async (scenes: Scene[]) => {
     const sceneIds = new Set(scenes.map(s => s.id));
     setCompiling(prev => new Set([...prev, ...sceneIds]));
 
-    // Clear errors for these scenes
     setCompilationErrors(prev => {
       const next = new Map(prev);
       sceneIds.forEach(id => next.delete(id));
@@ -74,7 +71,6 @@ export function useSceneCompiler() {
         throw new Error('Batch compilation failed');
       }
 
-      // Track errors for failed scenes
       data.results.forEach((result: any) => {
         if (!result.success) {
           setCompilationErrors(prev =>
@@ -99,17 +95,14 @@ export function useSceneCompiler() {
     }
   }, []);
 
-  // Check if scene is compiling
   const isCompiling = useCallback((sceneId: string) => {
     return compiling.has(sceneId);
   }, [compiling]);
 
-  // Get compilation error for scene
   const getError = useCallback((sceneId: string) => {
     return compilationErrors.get(sceneId);
   }, [compilationErrors]);
 
-  // Clear error for scene
   const clearError = useCallback((sceneId: string) => {
     setCompilationErrors(prev => {
       const next = new Map(prev);

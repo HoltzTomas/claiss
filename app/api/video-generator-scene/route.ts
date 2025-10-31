@@ -18,7 +18,6 @@ export async function POST(req: Request) {
   console.log(`[VIDEO-GEN-SCENE] Mode: ${mode}, Video ID: ${videoId || 'new'}`);
   console.log(`[VIDEO-GEN-SCENE] Messages received:`, messages.length);
 
-  // Get current video context if videoId provided
   let currentVideo = videoId ? sceneManager.getVideo(videoId) : null;
   let videoStructure = "";
 
@@ -44,7 +43,6 @@ export async function POST(req: Request) {
   try {
     console.log("[VIDEO-GEN-SCENE] Step 1: Initializing Context7 MCP client...");
 
-    // Create Context7 MCP client connection
     const transport = new StreamableHTTPClientTransport(
       new URL("https://mcp.context7.com/mcp"),
       {
@@ -59,14 +57,12 @@ export async function POST(req: Request) {
     mcpClient = await experimental_createMCPClient({ transport });
     console.log("[VIDEO-GEN-SCENE] ✅ MCP client created successfully");
 
-    // Get tools from Context7 MCP server
     console.log("[VIDEO-GEN-SCENE] Step 2: Fetching tools from Context7...");
     const context7Tools = await mcpClient.tools();
     console.log(
       `[VIDEO-GEN-SCENE] ✅ Retrieved ${Object.keys(context7Tools || {}).length} tools from Context7`,
     );
 
-    // Combine Context7 tools with scene-based tools
     const tools = {
       ...context7Tools,
       ...sceneTools,
@@ -185,7 +181,7 @@ IMPORTANT REMINDERS:
 Your goal: Enable users to create professional 10+ minute educational videos with fast iteration times through intelligent scene management.`,
       messages: convertedMessages,
       tools,
-      stopWhen: stepCountIs(10), // Allow more steps for scene operations
+      stopWhen: stepCountIs(10),
       onStepFinish: ({ text, toolCalls, toolResults, finishReason, usage }) => {
         console.log(`[VIDEO-GEN-SCENE] 📋 Step completed:`);
         console.log(`[VIDEO-GEN-SCENE]   - Reason: ${finishReason}`);
@@ -232,7 +228,6 @@ Your goal: Enable users to create professional 10+ minute educational videos wit
 
     console.error(`[VIDEO-GEN-SCENE] ❌ Error after ${duration}ms:`, error);
 
-    // Cleanup MCP client on error
     if (mcpClient) {
       await mcpClient.close();
     }
