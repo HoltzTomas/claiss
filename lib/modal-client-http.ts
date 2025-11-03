@@ -4,6 +4,7 @@ export interface ModalCompilationResult {
   error?: string;
   logs?: string;
   duration?: number;
+  statusCode?: number; // HTTP status code for error classification
 }
 
 export interface ModalCompilationRequest {
@@ -58,7 +59,12 @@ export class ModalHttpClient {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}, text: ${await response.text()}`);
+        const errorText = await response.text();
+        return {
+          success: false,
+          error: `HTTP ${response.status}: ${errorText}`,
+          statusCode: response.status
+        };
       }
 
       const result = await response.json();
@@ -160,7 +166,11 @@ export class ModalHttpClient {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}, text: ${await response.text()}`);
+        const errorText = await response.text();
+        return {
+          success: false,
+          error: `HTTP ${response.status}: ${errorText}`
+        };
       }
 
       const result = await response.json();
