@@ -1,4 +1,4 @@
-import type { Scene, Video, SceneOperation, SceneMetadata } from './scene-types';
+import type { Scene, Video, SceneOperation } from './scene-types';
 import { parseManimScenes, createStandaloneScene, detectSceneDependencies } from './scene-parser';
 
 export class SceneManager {
@@ -46,6 +46,7 @@ export class SceneManager {
       // Convert date strings back to Date objects
       video.createdAt = new Date(video.createdAt);
       video.updatedAt = new Date(video.updatedAt);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       video.scenes = video.scenes.map((s: any) => ({
         ...s,
         createdAt: new Date(s.createdAt),

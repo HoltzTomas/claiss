@@ -71,6 +71,7 @@ export function useSceneCompiler() {
         throw new Error('Batch compilation failed');
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data.results.forEach((result: any) => {
         if (!result.success) {
           setCompilationErrors(prev =>

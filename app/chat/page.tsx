@@ -59,11 +59,14 @@ function ChatSceneContent() {
     }),
     onFinish: async ({ message }) => {
       let hasNewScenes = false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let firstCompiledScene: any = null;
 
       if (message.parts) {
         for (const part of message.parts) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           if (part.type === 'tool-writeScene' && (part as any).state === 'output-available') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = (part as any).result || (part as any).output;
 
             if (result && result.success) {
@@ -83,6 +86,7 @@ function ChatSceneContent() {
               }
 
               if (result.isNewScene) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 createScene(sceneData as any, result.position || 0);
               } else {
                 updateScene(result.sceneId, sceneData);
@@ -230,7 +234,7 @@ function ChatSceneContent() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Start Creating</h3>
               <p className="text-muted-foreground text-sm">
-                Describe what you'd like to learn and I'll create a video
+                Describe what you&apos;d like to learn and I&apos;ll create a video
                 organized into scenes.
               </p>
               <div className="mt-4 text-xs text-muted-foreground">

@@ -3,7 +3,6 @@ import {
   writeFileSync,
   mkdirSync,
   existsSync,
-  copyFileSync,
   readdirSync,
 } from "fs";
 import path from "path";
@@ -239,9 +238,8 @@ async function compileWithLocal(
         );
 
         try {
-          const { readFileSync, copyFileSync } = await import("fs");
+          const { copyFileSync } = await import("fs");
           const videoId = generateSimpleVideoId();
-          const videoBuffer = readFileSync(manimOutputPath);
           copyFileSync(manimOutputPath, finalVideoPath);
 
           console.log(
@@ -278,7 +276,7 @@ async function compileWithLocal(
         const mp4Files = files.filter((f) => f.endsWith(".mp4"));
         console.log(`[MANIM-COMPILER] 📁 Files in ${videoDir}:`, files);
         console.log(`[MANIM-COMPILER] 🎬 MP4 files found:`, mp4Files);
-      } catch (e) {
+      } catch {
         console.log(
           `[MANIM-COMPILER] ❌ Could not read directory: ${path.dirname(manimOutputPath)}`,
         );

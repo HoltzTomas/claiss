@@ -1,6 +1,5 @@
-import { compileManimCode, type ManimCompilationResult } from './manim-compiler';
+import { compileManimCode } from './manim-compiler';
 import type { Scene, SceneCompilationResult } from './scene-types';
-import { put } from '@vercel/blob';
 
 export async function compileScene(scene: Scene): Promise<SceneCompilationResult> {
   console.log(`[SCENE-COMPILER] Compiling scene: ${scene.name} (${scene.id})`);

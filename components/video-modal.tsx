@@ -102,7 +102,7 @@ export function VideoModal({ isOpen, onClose, video }: VideoModalProps) {
             {/* Additional Info */}
             <div className="space-y-6">
               <div>
-                <h4 className="font-semibold mb-3 text-lg">What you'll learn:</h4>
+                <h4 className="font-semibold mb-3 text-lg">What you&apos;ll learn:</h4>
                 <ul className="text-muted-foreground space-y-2">
                   <li>• Step-by-step algorithm visualization</li>
                   <li>• Time and space complexity analysis</li>

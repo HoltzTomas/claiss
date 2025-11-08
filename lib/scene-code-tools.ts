@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { compileManimCode } from "./manim-compiler";
-import type { Scene, SceneOperation } from "./scene-types";
+// Removed unused Scene import
 
 export const writeSceneCodeTool = tool({
   description:
@@ -124,7 +124,7 @@ export const readScenesTool = tool({
       .default(false)
       .describe("Whether to include full scene code (set to false for overview)"),
   }),
-  execute: async ({ videoId, sceneIds, includeCode }) => {
+  execute: async ({ videoId, sceneIds }) => {
     try {
       console.log(
         `[SCENE-CODE-TOOL] 📖 Reading scenes from video ${videoId || "latest"}`
@@ -268,11 +268,12 @@ export const analyzeSceneTargetsTool = tool({
       console.log(`[SCENE-CODE-TOOL] 🎯 Analyzing targets for: ${userRequest}`);
 
       // Parse video structure
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let scenes: any[] = [];
       try {
         const structure = JSON.parse(videoStructure);
         scenes = structure.scenes || [];
-      } catch (e) {
+      } catch {
         console.error("[SCENE-CODE-TOOL] Failed to parse video structure");
       }
 

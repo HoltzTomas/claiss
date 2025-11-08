@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   console.log(`[VIDEO-GEN-SCENE] Mode: ${mode}, Video ID: ${videoId || 'new'}`);
   console.log(`[VIDEO-GEN-SCENE] Messages received:`, messages.length);
 
-  let currentVideo = videoId ? sceneManager.getVideo(videoId) : null;
+  const currentVideo = videoId ? sceneManager.getVideo(videoId) : null;
   let videoStructure = "";
 
   if (currentVideo) {
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mcpClient: any = null;
 
   try {
@@ -182,7 +183,7 @@ Your goal: Enable users to create professional 10+ minute educational videos wit
       messages: convertedMessages,
       tools,
       stopWhen: stepCountIs(10),
-      onStepFinish: ({ text, toolCalls, toolResults, finishReason, usage }) => {
+      onStepFinish: ({ toolCalls, finishReason }) => {
         console.log(`[VIDEO-GEN-SCENE] 📋 Step completed:`);
         console.log(`[VIDEO-GEN-SCENE]   - Reason: ${finishReason}`);
         console.log(`[VIDEO-GEN-SCENE]   - Tool calls: ${toolCalls?.length || 0}`);
@@ -193,7 +194,7 @@ Your goal: Enable users to create professional 10+ minute educational videos wit
           });
         }
       },
-      onFinish: async ({ text, usage, finishReason, steps }) => {
+      onFinish: async ({ steps }) => {
         const endTime = Date.now();
         const duration = endTime - startTime;
 

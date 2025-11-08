@@ -35,6 +35,7 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
     ),
 
     // Code blocks
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
     code: ({ inline, className, children, ...props }: any) => {
       if (inline) {
         return (

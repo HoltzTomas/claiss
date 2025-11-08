@@ -14,6 +14,7 @@ import { useState } from "react";
 export default function ClassiaLanding() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 

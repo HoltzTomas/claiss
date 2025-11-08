@@ -149,7 +149,7 @@ export function convertToSceneBasedCode(code: string): {
   // Parse scenes
   const sceneMetadata = parseManimScenes(code);
 
-  const scenes = sceneMetadata.map((meta, index) => ({
+  const scenes = sceneMetadata.map((meta) => ({
     name: meta.name,
     className: `${baseClass}_${meta.name.replace(/\s+/g, '')}`,
     code: createStandaloneScene(meta.name, meta.code, `${baseClass}_${meta.name.replace(/\s+/g, '')}`)

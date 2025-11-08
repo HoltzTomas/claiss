@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
           );
           return NextResponse.redirect(targetVideo.url);
         }
-      } catch (blobError) {
+      } catch {
         console.log(
           `[VIDEO-API] Blob storage unavailable for video ${videoId}, checking /tmp fallback`,
         );
@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         const stat = statSync(videoPath);
         const stream = createReadStream(videoPath);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return new NextResponse(stream as any, {
           status: 200,
           headers: {
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest) {
           const stat = statSync(videoPath);
           const stream = createReadStream(videoPath);
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return new NextResponse(stream as any, {
             status: 200,
             headers: {
@@ -128,7 +130,7 @@ export async function HEAD(request: NextRequest) {
             },
           });
         }
-      } catch (blobError) {
+      } catch {
         console.log(
           `[VIDEO-API] HEAD: Blob storage unavailable, checking /tmp fallback`,
         );
@@ -180,7 +182,7 @@ export async function HEAD(request: NextRequest) {
             },
           });
         }
-      } catch (blobError) {
+      } catch {
         console.log(
           `[VIDEO-API] HEAD: Blob storage unavailable, checking /tmp fallback`,
         );
