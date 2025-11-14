@@ -13,14 +13,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { scene, scenes, mode = 'single' } = body;
 
-    if (mode === 'single') {
-      if (!scene) {
-        return NextResponse.json({
-          success: false,
-          error: 'Scene object is required for single mode'
-        }, { status: 400 });
-      }
+    const supportedModes = ['single', 'multiple'];
 
+    if (!supportedModes.includes(mode)) {
+      return NextResponse.json({
+        success: false,
+        error: `Invalid mode: ${mode}. Use 'single' or 'multiple'`
+      }, { status: 400 });
+    }
+
+    const isSingleSceneRequest = mode === 'single' && scene;
+    const isMultipleScenesRequest = mode === 'multiple' && scenes && Array.isArray(scenes);
+
+    const isInvalidRequest = !isSingleSceneRequest && !isMultipleScenesRequest;
+
+    if (isInvalidRequest) {
+      const errorMessage = mode === 'single' ? 'Scene object is required for single mode' : 'Scenes array is required for multiple mode';
+
+      return NextResponse.json({
+        success: false,
+        error: errorMessage
+      }, { status: 400 });
+    }
+
+    if (isSingleSceneRequest) {
       console.log(`[SCENE-COMPILE-API] Compiling single scene: ${scene.name}`);
       const result = await compileScene(scene as Scene);
 
@@ -32,15 +48,9 @@ export async function POST(request: NextRequest) {
         result,
         duration: `${duration}ms`
       });
+    }
 
-    } else if (mode === 'multiple') {
-      if (!scenes || !Array.isArray(scenes)) {
-        return NextResponse.json({
-          success: false,
-          error: 'Scenes array is required for multiple mode'
-        }, { status: 400 });
-      }
-
+    if (isMultipleScenesRequest) {
       console.log(`[SCENE-COMPILE-API] Compiling ${scenes.length} scenes in parallel`);
       const results = await compileScenes(scenes as Scene[]);
 
@@ -59,14 +69,7 @@ export async function POST(request: NextRequest) {
         },
         duration: `${duration}ms`
       });
-
-    } else {
-      return NextResponse.json({
-        success: false,
-        error: `Invalid mode: ${mode}. Use 'single' or 'multiple'`
-      }, { status: 400 });
     }
-
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[SCENE-COMPILE-API] Error after ${duration}ms:`, error);
