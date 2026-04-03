@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sceneManager } from '@/lib/scene-manager';
-import type { SceneOperation } from '@/lib/scene-types';
+import type { Scene, SceneOperation, Video } from '@/lib/scene-types';
 
 export const maxDuration = 30;
 
@@ -61,59 +61,46 @@ export async function GET(request: NextRequest) {
     const sceneId = searchParams.get('sceneId');
     const action = searchParams.get('action');
 
-    if (action === 'latest') {
-      const video = sceneManager.getLatestVideo();
+    const isGetLatestVideoRequest = action === 'latest';
+    const isGetSpecificVideoRequest = videoId && !sceneId;
+    const isGetSpecificSceneRequest = videoId && sceneId;
 
-      if (!video) {
-        return NextResponse.json({
-          success: false,
-          error: 'No video found'
-        }, { status: 404 });
-      }
+    const isInvalidRequest = !isGetLatestVideoRequest && !isGetSpecificVideoRequest && !isGetSpecificSceneRequest;
 
+    if (isInvalidRequest) {
       return NextResponse.json({
-        success: true,
-        video
-      });
+        success: false,
+        error: 'Invalid request'
+      }, { status: 400 });
     }
 
-    if (videoId && !sceneId) {
-      const video = sceneManager.getVideo(videoId);
+    let video: Video | null = null;
+    let scene: Scene | null = null;
 
-      if (!video) {
-        return NextResponse.json({
-          success: false,
-          error: 'Video not found'
-        }, { status: 404 });
-      }
-
-      return NextResponse.json({
-        success: true,
-        video
-      });
+    if (isGetLatestVideoRequest) {
+      video = sceneManager.getLatestVideo();
     }
 
-    if (videoId && sceneId) {
-      const scene = sceneManager.getScene(videoId, sceneId);
+    if (isGetSpecificVideoRequest) {
+      video = sceneManager.getVideo(videoId);
+    }
 
-      if (!scene) {
-        return NextResponse.json({
-          success: false,
-          error: 'Scene not found'
-        }, { status: 404 });
-      }
+    if (isGetSpecificSceneRequest) {
+      scene = sceneManager.getScene(videoId, sceneId);
+    }
 
+    if (!video && !scene) {
       return NextResponse.json({
-        success: true,
-        scene
-      });
+        success: false,
+        error: 'Video or scene not found'
+      }, { status: 404 });
     }
 
     return NextResponse.json({
-      success: false,
-      error: 'Invalid query parameters'
-    }, { status: 400 });
-
+      success: true,
+      video,
+      scene
+    });
   } catch (error) {
     console.error(`[SCENE-OPS-API] Error:`, error);
 
