@@ -1,115 +1,131 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { X, Copy } from "lucide-react"
+import { Copy, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ExampleVideo {
-  title: string
-  prompt: string
-  videoUrl: string
-  duration: string
-  category: string
+  title: string;
+  author?: string;
+  prompt: string;
+  videoUrl: string;
+  duration: string;
+  category: string;
 }
 
 interface ExampleModalProps {
-  video: ExampleVideo | null
-  isOpen: boolean
-  onClose: () => void
+  video: ExampleVideo | null;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function ExampleModal({ video, isOpen, onClose }: ExampleModalProps) {
-  console.log("[v0] ExampleModal render - isOpen:", isOpen, "video:", video)
-
-  const [isCopied, setIsCopied] = useState(false)
+export function ExampleModal({
+  video,
+  isOpen,
+  onClose,
+}: ExampleModalProps) {
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
 
     if (isOpen) {
-      document.addEventListener("keydown", handleEscape)
-      document.body.style.overflow = "hidden"
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener("keydown", handleEscape)
-      document.body.style.overflow = "unset"
-    }
-  }, [isOpen, onClose])
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !video) {
-    console.log("[v0] Modal not rendering - isOpen:", isOpen, "video:", video)
-    return null
+    return null;
   }
 
-  console.log("[v0] Modal rendering with video:", video.title)
-
-  const copyPrompt = () => {
-    navigator.clipboard.writeText(video.prompt)
-    setIsCopied(true)
-    setTimeout(() => setIsCopied(false), 2000)
-  }
+  const copyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(video.prompt);
+      setIsCopied(true);
+      window.setTimeout(() => setIsCopied(false), 2000);
+    } catch {
+      setIsCopied(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6">
+      <button
+        type="button"
+        aria-label="Close modal"
+        className="absolute inset-0 bg-black/75 backdrop-blur-md"
+        onClick={onClose}
+      />
 
-      <div className="relative w-[95vw] h-[95vh] bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden">
+      <div className="classia-shell relative z-10 grid max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[28px] lg:grid-cols-[1.35fr_0.95fr]">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors"
+          className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/80 transition hover:bg-white/[0.12] hover:text-white"
         >
-          <X className="w-6 h-6 text-white" />
+          <X className="h-5 w-5" />
         </button>
 
-        <div className="flex h-full">
-          <div className="flex-[2] flex items-center justify-center bg-black/20 p-8">
-            <div className="relative w-full max-w-4xl aspect-video bg-black/40 rounded-xl overflow-hidden">
-              <video
-                src={video.videoUrl}
-                controls
-                autoPlay
-                className="w-full h-full object-cover"
-                poster="/video-thumbnail.png"
-              />
-              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="text-white text-sm font-medium">{video.duration}</span>
-              </div>
+        <div className="border-b border-white/[0.08] bg-[#080c18] p-5 sm:p-8 lg:border-b-0 lg:border-r">
+          <div className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-black/30 shadow-[0_24px_80px_rgba(0,0,0,0.4)]">
+            <video
+              src={video.videoUrl}
+              controls
+              autoPlay
+              playsInline
+              className="aspect-video w-full bg-black object-cover"
+            />
+          </div>
+
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/[0.42]">
+            <span>{video.author ?? "Classia community"}</span>
+            <span>{video.duration}</span>
+          </div>
+        </div>
+
+        <div className="max-h-[92vh] overflow-y-auto p-6 sm:p-8">
+          <div className="inline-flex items-center rounded-full border border-[#2b67a6]/60 bg-[#10203a]/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#58a6ff]">
+            {video.category}
+          </div>
+
+          <h2 className="mt-5 text-3xl font-black tracking-[-0.05em] text-white sm:text-[2.6rem]">
+            {video.title}
+          </h2>
+
+          <div className="mt-8">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-white/[0.35]">
+              Original Prompt
+            </p>
+            <div className="rounded-[22px] border border-white/[0.08] bg-white/[0.035] p-5 text-base leading-8 text-white/[0.72]">
+              {video.prompt}
             </div>
           </div>
 
-          <div className="flex-1 p-8 flex flex-col">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold text-white mb-2">{video.title}</h2>
-              <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm font-medium">
-                {video.category}
-              </span>
-            </div>
-
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold text-white mb-4">Original Prompt</h3>
-              <div className="bg-black/20 border border-white/10 rounded-xl p-6 mb-6">
-                <p className="text-gray-200 leading-relaxed text-lg">{video.prompt}</p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={copyPrompt}
-                  className={`flex items-center gap-2 px-4 py-2 border border-white/20 rounded-lg transition-all duration-200 transform ${
-                    isCopied
-                      ? "bg-green-500/20 border-green-400/40 scale-95 text-green-300"
-                      : "bg-white/10 hover:bg-white/20 hover:scale-105 text-white"
-                  }`}
-                >
-                  <Copy className={`w-4 h-4 ${isCopied ? "text-green-300" : "text-white"}`} />
-                  <span className="font-medium">{isCopied ? "Copied!" : "Copy Prompt"}</span>
-                </button>
-              </div>
-            </div>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={copyPrompt}
+              className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition ${
+                isCopied
+                  ? "border-[#00d4aa]/40 bg-[#00d4aa]/14 text-[#7bf5de]"
+                  : "border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white"
+              }`}
+            >
+              <Copy className="h-4 w-4" />
+              {isCopied ? "Copied!" : "Copy Prompt"}
+            </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
