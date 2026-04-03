@@ -310,7 +310,7 @@ const { messages, sendMessage, status } = useChat({
 1. Parse request body (messages, videoId, mode)
 2. Load existing video from SceneManager if videoId provided
 3. Initialize Context7 MCP client for Manim documentation
-4. Configure AI model (Google Gemini 2.5 Pro)
+4. Configure AI model through Vercel AI Gateway
 5. Build system prompt with:
    - Scene-based architecture instructions
    - Available tools (analyzeTargets, readScenes, writeScene, sceneOperation)
@@ -321,7 +321,7 @@ const { messages, sendMessage, status } = useChat({
 **Key Configuration:**
 ```typescript
 const result = streamText({
-  model: google("gemini-2.5-pro"),
+  model: gateway("google/gemini-2.5-pro"),
   system: systemPrompt, // Includes scene context
   messages: convertToModelMessages(messages),
   tools: {
@@ -784,11 +784,11 @@ class ModalHttpClient {
 
 ## External Services
 
-### 1. Google Gemini 2.5 Pro
+### 1. Vercel AI Gateway
 
-**Purpose:** AI model for code generation
+**Purpose:** Route AI requests to the configured generation model
 
-**Model ID:** `google("gemini-2.5-pro")`
+**Default Model ID:** `gateway("google/gemini-2.5-pro")`
 
 **Usage:**
 - Analyzes user prompts
@@ -799,7 +799,7 @@ class ModalHttpClient {
 **Configuration:**
 ```typescript
 streamText({
-  model: google("gemini-2.5-pro"),
+  model: gateway("google/gemini-2.5-pro"),
   system: systemPrompt,
   messages: convertToModelMessages(messages),
   tools: { ... },
@@ -1227,7 +1227,8 @@ interface MergeResult {
 
 ```bash
 # AI Model
-GOOGLE_GENERATIVE_AI_API_KEY=...
+AI_GATEWAY_API_KEY=...
+AI_GATEWAY_MODEL=google/gemini-2.5-pro
 
 # Context7 MCP (Manim docs)
 CONTEXT7_API_KEY=...

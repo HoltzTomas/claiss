@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { gateway } from "@ai-sdk/gateway";
 import {
   streamText,
   convertToModelMessages,
@@ -9,6 +9,8 @@ import { sceneTools } from "@/lib/scene-code-tools";
 import { sceneManager } from "@/lib/scene-manager";
 import { getVideoGeneratorScenePrompt } from "@/lib/prompts/video-generator-scene";
 import { createContext7Client } from "@/lib/mcp/context7-client";
+
+const AI_GATEWAY_MODEL = process.env.AI_GATEWAY_MODEL ?? "google/gemini-2.5-pro";
 
 export async function POST(req: Request) {
   const { messages, videoId, mode = 'scene' }: { messages: UIMessage[]; videoId?: string; mode?: 'scene' | 'monolithic' } = await req.json();
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
     console.log("[VIDEO-GEN-SCENE] ✅ Messages converted successfully");
 
     const result = streamText({
-      model: google("gemini-2.5-pro"),
+      model: gateway(AI_GATEWAY_MODEL),
       system: getVideoGeneratorScenePrompt(currentVideo, videoStructure),
       messages: convertedMessages,
       tools,

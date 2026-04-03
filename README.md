@@ -27,7 +27,7 @@ Claiss is built with modern web technologies:
 
 - **Frontend**: Next.js 14 (App Router) + React 18
 - **Styling**: Tailwind CSS with custom glassmorphic components
-- **AI**: Google Generative AI (Gemini) for scene generation
+- **AI**: Vercel AI Gateway for scene generation, currently defaulting to Gemini 2.5 Pro
 - **Video Compilation**: Manim via Modal.com serverless containers
 - **Storage**: Vercel Blob for video storage
 - **State Management**: React hooks + LocalStorage (temporary - see [Roadmap](ROADMAP.md))
@@ -35,7 +35,7 @@ Claiss is built with modern web technologies:
 ### How it Works
 
 1. **User Input**: Describe what you want to learn in natural language
-2. **AI Processing**: Google Gemini analyzes the prompt and generates Manim scene code
+2. **AI Processing**: Vercel AI Gateway routes the prompt to the configured model and generates Manim scene code
 3. **Compilation**: Modal.com compiles the Manim code into video segments
 4. **Storage**: Videos are stored in Vercel Blob storage
 5. **Merging**: Individual scenes are merged into a final video
@@ -46,7 +46,7 @@ Claiss is built with modern web technologies:
 ### Prerequisites
 
 - Node.js 18+ and pnpm
-- [Google AI API Key](https://makersuite.google.com/app/apikey)
+- [Vercel AI Gateway API Key](https://vercel.com/docs/ai-gateway)
 - [Modal.com Account](https://modal.com) (free tier available)
 - [Vercel Account](https://vercel.com) for Blob storage
 
@@ -69,7 +69,8 @@ Claiss is built with modern web technologies:
    ```
 
    Edit `.env` and fill in your API keys:
-   - `GOOGLE_GENERATIVE_AI_API_KEY` - Get from [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - `AI_GATEWAY_API_KEY` - Get from [Vercel AI Gateway](https://vercel.com/docs/ai-gateway)
+   - `AI_GATEWAY_MODEL` - Optional override, defaults to `google/gemini-2.5-pro`
    - `MODAL_TOKEN_SECRET` - Get from [Modal Settings](https://modal.com/settings/tokens)
    - `BLOB_READ_WRITE_TOKEN` - Get from [Vercel Dashboard](https://vercel.com/dashboard/stores)
 
@@ -193,7 +194,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Manim Community](https://www.manim.community/) for the amazing animation library
 - [Modal.com](https://modal.com) for serverless Python execution
 - [Vercel](https://vercel.com) for hosting and blob storage
-- [Google AI](https://ai.google.dev/) for Gemini API
+- [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) for multi-provider model access
 
 ## 📞 Support
 
