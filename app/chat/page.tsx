@@ -126,7 +126,7 @@ function ChatSceneContent() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isProcessing]);
 
   useEffect(() => {
     const promptParam = searchParams.get("prompt");
@@ -208,6 +208,9 @@ function ChatSceneContent() {
 
   const compilationProgress = getCompilationProgress();
   const readyToMerge = isReadyToMerge();
+  const lastMessage = messages[messages.length - 1];
+  const showPendingAssistantPlaceholder =
+    isProcessing && lastMessage?.role !== "assistant";
 
   return (
     <div className="h-screen bg-background text-foreground flex overflow-hidden">
@@ -269,6 +272,16 @@ function ChatSceneContent() {
               </div>
             </div>
           ))}
+
+          {showPendingAssistantPlaceholder && (
+            <div className="flex justify-start">
+              <div className="max-w-[85%] w-fit glassmorphism rounded-2xl p-4">
+                <p className="text-xs text-muted-foreground">
+                  {new Date().toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+          )}
 
           {isProcessing && (
             <div className="flex justify-start">
